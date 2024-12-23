@@ -32,55 +32,92 @@ get_error_t <- function(t, sd, Phi, err_tminus, Const = c(rep.int(0, J))){
 # For wide data format ----------------------------------------------------
 # Columns: ID, ID_Choice_ocassion, choice, vars.....
 
-J = 5
+J = 3
 info_i = 100000
 info = c(rep.int(NA,info_i))
 for (i in 1:info_i){
-  mu = c(28,-10,24,-2,0)[1:J]
-  sigma = diag(c(5,1,2,8,12)[1:J])
-  beta = MASS::mvrnorm(1, mu, sigma)
+  asc = c(0, rep.int(0, J-1))
+  #b = c(5,3,8,-2,0)[1:J]
+  #beta = MASS::mvrnorm(1, mu = c(rep.int(0, J)), Sigma = diag(c(5,10,2,8,12)[1:J]))
+  b = c(rep.int(0, J))
+  sign = sample(c(1,-1), size = 1, prob = c(0.75, 0.25))
+  beta = c(rep.int(sign,3))
   X = diag(MASS::mvrnorm(1, mu = c(rep.int(0,J)), Sigma = diag(c(rep.int(1,J))))) + matrix(0, J, J)
-  epsilon = get_error_t(t=1, sd=c(9,4,7,3,10)[1:J], Phi = create_Phi(vec), test)
-  V = X %*% beta
+  #epsilon = get_error_t(t = 1, sd = c(9,4,7,3,10)[1:J], Phi = create_Phi(vec), test)
+  epsilon = get_error_t(t = 1, sd = c(rep.int(1, J)), Phi = create_Phi(9*3*vec), test)
+  V = asc + X %*% beta + X %*% b
+  U = V + epsilon
+  info[i] = which(U == max(U))
+  if(i==info_i){ print(table(info)/info_i)}
+}
+for (i in 1:info_i){
+  asc = c(0, rep.int(0, J-1))
+  #b = c(5,3,8,-2,0)[1:J]
+  #beta = MASS::mvrnorm(1, mu = c(rep.int(0, J)), Sigma = diag(c(5,10,2,8,12)[1:J]))
+  b = c(rep.int(1, J))
+  beta = MASS::mvrnorm(1, mu = c(rep.int(0, J)), Sigma = diag(c(rep.int(1,J))))
+  X = diag(MASS::mvrnorm(1, mu = c(rep.int(0,J)), Sigma = diag(c(rep.int(1,J))))) + matrix(0, J, J)
+  #epsilon = get_error_t(t = 1, sd = c(9,4,7,3,10)[1:J], Phi = create_Phi(vec), test)
+  epsilon = get_error_t(t = 1, sd = c(rep.int(1, J)), Phi = create_Phi(9*3*vec), test)
+  V = asc + X %*% beta + X %*% b
   U = V + epsilon
   info[i] = which(U == max(U))
   if(i==info_i){ print(table(info)/info_i)}
 }
 
 
-
 # Processes for balanced Panel --------------------------------------------
-J = 3
-N = 100
-T = 20
-alphabet <- "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-entries <- strsplit(alphabet, "")[[1]][1:J]
-# Initial data frame, on which joins are repeatedly performed on
-df1 = data.frame(id = c(rep.int(NA,T)),
-                 idc = c(rep.int(NA, T)),
-                 choice = c(rep.int(NA, T)))
-
-for (i in 1:N){
-  # Iteration data frame that is repeatedly created and filled for each individual
-  df = data.frame(id = c(rep.int(NA,T)),
-                   idc = c(rep.int(NA, T)),
-                   choice = c(rep.int(NA, T)))
+get_individual_i_df <- function(N, J, T_max, person_i, T_properties = list("type" = "balanced",
+                                                                           "dist" = "uniform"),
+                                b = T, beta = F){
+  
+  # Decide whether dataframe is a balanced panel, and if not what distribution/process is used
+  panel_type = T_properties$type
+  if(panel_type != "balanced"){
+    
+    T_distribution = T_properties$dist
+    T_i = switch(  
+      T_distribution,  
+      "uniform"= sample(1:T_max, size = 1),
+      "truncated_normal" = round(truncnorm::rtruncnorm(n = 1, a = 1, b = T_max, mean = T_max/2, sd = T_max/6)),
+      "equal_beta" = round(1 + (T_max - 1) * rbeta(1, shape1 = 2, shape2 = 2)),
+      "reliable_beta" = round(1 + (T_max - 1) * rbeta(1, shape1 = 5, shape2 = 1)),
+      FALSE
+    )
+    if(T_i == F){
+      print("Distribution is incorrect - Use one of: uniform, truncated_normal, equal_beta, or reliable_beta")
+      stop()
+    }
+  } else {
+    T_i = T_max
+  }
+  
+  # i-th iteration data frame for individual i, with  fixed J and T_i
+  df = data.frame(id = c(rep.int(NA,T_i)),
+                  idc = c(rep.int(NA, T_i)),
+                  choice = c(rep.int(NA, T_i)))
   
   # Fill in individual i's dataframe
-  df$id = i
-  df$idc = 1:T
+  df$id = i = person_i
+  df$idc = 1:T_i
+  
+  alphabet <- "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  entries <- strsplit(alphabet, "")[[1]][1:J]
+  
   for (v in 1:J) {
     col_name <- paste0("x_", substr(alphabet, v, v))  
     df[[col_name]] <- NA  
   }
   
   # Apply underlying utility choice process
-  for (t in 1:T){
+  for (t in 1:T_i){
     
-    beta = MASS::mvrnorm(1, mu = c(5,3,8,-2,0)[1:J], sigma = diag(c(5,10,2,8,12)[1:J]))
+    asc = c(0, rep.int(0, J-1))
+    b = c(5,3,8,-2,0)[1:J]
+    beta = MASS::mvrnorm(1, mu = c(rep.int(0, J)), Sigma = diag(c(5,10,2,8,12)[1:J]))
     X = diag(MASS::mvrnorm(1, mu = c(rep.int(0,J)), Sigma = diag(c(rep.int(1,J))))) + matrix(0, J, J)
     epsilon = get_error_t(t = 1, sd = c(9,4,7,3,10)[1:J], Phi = create_Phi(vec), test)
-    V = X %*% beta
+    V = asc + X %*% beta + X %*% b
     U = V + epsilon
     
     # Extract & fill in choice by maximum utility
@@ -89,20 +126,26 @@ for (i in 1:N){
     start_off_var_cols = which(names(df) == paste0("x_", substr(alphabet, 1, 1)))
     df[t,start_off_var_cols:dim(df)[2]] = diag(X)
   }
-  
-  if (i == 1){
-    df1 = df
-  } else {
-    df1 <- rbind(df1, df)
-  }
+  return(df)
 }
 
+simulate_individual_df <- function(N, J, T_max, T_properties = list("type" = "balanced",
+                                                                    "dist" = "uniform")){
+  for (i in 1:N){
+    if(i == 1){
+      df <- get_individual_i_df(N, J, T_max, person_i = i, T_properties)
+    } else {
+      df <- rbind(df, get_individual_i_df(N, J, T_max, person_i = i, T_properties))
+    }
+  }
+ 
+  return(df)                                                                                   
+}  
+
+
+get_individual_i_df(N = 100, J = 3, T_max = 20, person_i = 2, T_properties = list("type" = "unbalanced",
+                                                                                  "dist" = "uniform"))
+simulate_individual_df(N = 100, J = 3, T_max = 20, T_properties = list("type" = "balanced",
+                                                                       "dist" = "uniform"))
 
 # Fitting a probit model on dataset ---------------------------------------
-
-
-
-
-
-
-
