@@ -3,14 +3,14 @@
 # Ordered MNP-based Discrete Choice Models in Rprobit environment
 # -------------------------------------------------------------------------
 # Install package from source
-#file.exists("~/Rprobit_0.3.2.tar.gz")
-#install.packages("~/Rprobit_0.3.2.tar.gz", repos = NULL, type = "source")
+#file.exists("~/Rprobit_0.3.2update.tar.gz")
+#install.packages("~/Rprobit_0.3.2update.tar.gz", repos = NULL, type = "source")
 
 # Load package
 library(Rprobit)
 
 # -------------------------------------------------------------------------
-# Examplified data generating process and package usage
+# Exemplified data generating process and package usage
 
 check_if_stationary <- function(rho){
   if(!is.vector(rho)){
@@ -225,35 +225,37 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
   }
 }
 
-
+set.seed(1)
 get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
                          N = 100, # individuals
                          quest = 1, # num of questions
                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
                          rho = 0.5, # rho in error AR(1)-process
-                         return_val = "") # if return should be something else
+                         return_val = "summary") # if return should be something else
+
+set.seed(1)
+get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
+                         N = 100, # individuals
+                         quest = 1, # num of questions
+                         beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
+                         rho = 0.5, # rho in error AR(1)-process
+                         return_val = "")
 
 get_simulation_estimates(return_val = "sd")
 
 
 # -------------------------------------------------------------------------
 # To-Do:
-# - Extract parameters of interest of Rprobit mod output for all grid values
 # - Add H/J-Mat conv code (nlm convergence code done)
 # - Improve get_simultion_estimates to only depend on draw_simulation_data
 # - Slot in stability check infront of parameter grid
-# n_reps = 20
-# Tfull = 5
-# N = 100
-# quest = 1
-# beta_coefs = c(1,1)
-# rho = 0.5
 
 get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5){
   
   # Clear warning cache before estimating models
   #assign("last.warning", NULL, envir = baseenv())
   
+  set.seed(1)
   sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
                                                                  N, # individuals
                                                                  quest, # num of questions
@@ -272,7 +274,7 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
   if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
     print("All nlm models were successfully estimated")
   } else {
-    cat("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge")
+    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge")
     sim_replications = sim_replications[,-conv_failed_index]
   }
   
@@ -293,21 +295,15 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
 }
 
 
+#foo = get_bias(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = -0.5)
+#foo$beta_bias
 
-# foo = get_bias(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = -0.5)
-# foo$beta_bias
-
-# -------------------------------------------------------------------------
 # Define grid level to map get_bias on:
-# phi_grid <- seq(from = -0.5, to = 0.5, by = 0.5)
-# Tfull_grid <- seq(from = 2, to = 10, by = 2)
-
 rho = c(0.5, 0.3, 0.1)
 Tfull = seq(from = 5, to = 50, by = 5)
 N = c(20, 50, 100)
 n_reps = c(100)
 
-# Put together in parameters ----------------------------------------------
 create_grid <- function(...) {
   vars <- list(...)
   var_names <- sapply(substitute(list(...))[-1], deparse)
@@ -326,16 +322,160 @@ sim_results
 
 # Obtain Confidence Interval stats ----------------------------------------
 # Get true sd by fitting model to quasi-infinite sample (N extremely large; other parameters fixed)
-adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
-  return((N_old*unadjusted_true_var)/N_new)
+# set.seed(1)
+# true_var = get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
+#                          N = 50000, # individuals
+#                          quest = 1, # num of questions
+#                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
+#                          rho = 0.5, # rho in error AR(1)-process
+#                          return_val = "var") # if return should be something else
+# (true_var)
+# write.csv(true_var, file = "trueVarRho0.5Tfull5.csv", row.names = F)
+
+get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, return_val = ""){
+  
+  # Clear warning cache before estimating models
+  #assign("last.warning", NULL, envir = baseenv())
+  set.seed(1)
+  sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
+                                                                 N, # individuals
+                                                                 quest, # num of questions
+                                                                 beta_coefs, # beta coefs; here: (free, fixed)
+                                                                 rho, # rho in error AR(1)-process
+                                                                 return_val = "")) # return coefs & sds
+                          
+  # Overview of sim_replications:
+  # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
+  # - Columns = n_reps
+  
+  # Calculate convergence success rate and filter out non-successful coefficient estimates
+  conv_tab <- table(unlist(sim_replications[4,]))
+  conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
+  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5)
+  if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
+    print("All nlm models were successfully estimated")
+  } else {
+    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge")
+    sim_replications = sim_replications[,-conv_failed_index]
+  }
+  
+  # Get estimates
+  beta_estimates <- sapply(sim_replications[1,], function(x) x["b_coef"])
+  omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])
+  rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])
+  
+  
+  # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
+  if(file.exists("~/trueVarRho0.5Tfull5.csv")){
+    true_var <- load("trueVarRho0.5Tfull5.csv")
+  } else {
+    true_var <- read.csv("~/GitHub/MasterThesis/trueVarRho0.5Tfull5.csv")
+    names(true_var) = "true_var"
+    true_var <- as.vector(unlist(true_var))
+  }
+  
+  adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
+    return((N_old*unadjusted_true_var)/N_new)
+  }
+  
+  true_var <- true_var[c(1,2,9)] # beta(1), omega(2), tau(3:8), rho(9)
+  adjusted_variances <- adjust_var_to_N(true_var, N_new = N, N_old = 50000)
+  true_parameters = c(beta = beta_coefs[1], omega = 1, rho = rho)
+  
+  # Calculate (1-alpha)%-CI boundaries
+  if(alpha > 0 & alpha < 1){
+    z_value = qnorm(1-alpha/2) # For different CIs
+  } else {
+    print("Error: Alpha value invalid")
+  }
+  
+  ci_lower <- true_parameters - z_value * sqrt(adjusted_variances)
+  ci_upper <- true_parameters + z_value * sqrt(adjusted_variances)
+  
+  # Check cuccess or failure for each parameter
+  success_beta <- sum(beta_estimates >= ci_lower[1] & beta_estimates <= ci_upper[1])
+  failure_beta <- length(beta_estimates) - success_beta
+  
+  success_omega <- sum(omega_estimates >= ci_lower[2] & omega_estimates <= ci_upper[2])
+  failure_omega <- length(omega_estimates) - success_omega
+  
+  success_rho <- sum(rho_estimates >= ci_lower[3] & rho_estimates <= ci_upper[3])
+  failure_rho <- length(rho_estimates) - success_rho
+  
+  
+  if(nzchar(return_val)){
+    return(Success_rate = c(success_beta, success_omega, success_rho)/length(beta_estimates))
+  } else {
+  # Display results in table
+  results_table <- data.frame(
+    Parameter = c("beta", "omega", "rho"),
+    Total_Estimates = c(rep.int(length(beta_estimates), 3)),
+    Success_Count = c(success_beta, success_omega, success_rho),
+    Success_rate = c(success_beta, success_omega, success_rho)/length(beta_estimates),
+    CI_Lower = ci_lower,
+    True_param = true_parameters,
+    CI_Upper = ci_upper
+  )
+  
+  # Output
+  print(paste0("Confidence Level: ", (1-alpha)*100, "%"))
+  print(results_table)
+  }
+ 
 }
 
-true_var = get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
-                         N = 1000, # individuals
-                         quest = 1, # num of questions
-                         beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
-                         rho = 0.5, # rho in error AR(1)-process
-                         return_val = "var") # if return should be something else
-(true_var)
-(true_var = adjust_var_to_N(true_var, N_new = 100, N_old = 1000))
+get_CI_results(n_reps = 100,
+               Tfull = 5,
+               N = 50,
+               quest = 1,
+               beta_coefs = c(1,1),
+               rho = 0.5,
+               alpha = 0.05,
+               return_val = "success_rate")
 
+create_grid <- function(...) {
+  vars <- list(...)
+  var_names <- sapply(substitute(list(...))[-1], deparse)
+  setNames(expand.grid(vars), var_names)
+}
+
+# ----- Calculate first set (hold everything but N)
+N = c(5, 10, 20, 30, 40, 50, 100, 200)
+Tfull = c(5)
+n_reps = c(200)
+rho = c(0.5)
+
+parameters = create_grid(N, n_reps, Tfull, rho)
+suppressWarnings({
+success_rates <- Map(get_CI_results, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, return_val = "success_rate")
+})
+
+# Formating results
+success_rates <- do.call(rbind, success_rates)
+
+CI_results <- cbind(parameters, success_rates)
+names(CI_results)[5:7] = c("beta_pc", "omega_pc", "rho_pc")
+CI_results
+
+library(tidyr)
+library(ggplot2)
+
+# Reshape to long format
+CI_results_long <- CI_results %>%
+  pivot_longer(
+    cols = c(beta_pc, omega_pc, rho_pc), # Specify columns to reshape
+    names_to = "parameter",              # New column for parameter names
+    values_to = "rate"                   # New column for percentage rates
+  )
+
+# Plot using ggplot2
+ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate * 100 for %
+  geom_line(size = 1) + geom_point(size = 2) + # line plot with points
+  geom_hline(yintercept = 95, linetype = "dotted", color = "black", size = 0.8) + 
+  labs(title = "Percentage of Estimates within 95%-Confidence Interval",
+       x = "Number of Individuals (N)",
+       y = "Percentage within CI (%)",
+       color = "Parameter") +
+  scale_color_manual(values = c("beta_pc" = "blue", "omega_pc" = "red", "rho_pc" = "green")) +
+  theme_minimal() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top")
