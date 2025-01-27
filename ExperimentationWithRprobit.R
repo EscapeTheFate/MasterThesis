@@ -3,24 +3,20 @@
 # for MNP-based Discrete Choice Models
 # -------------------------------------------------------------------------
 # Define directories based on PC
-current_pc <- Sys.info()["nodename"]
-if (current_pc == "DESKTOP-OJDPBIN") {
-  setwd("C:/Users/marce/Documents/GitHub/MasterThesis") 
-} else if (current_pc == "PC2-Hostname") {
-  data_dir <- "D:/Path/To/Workspace2"
-} else {
-  stop("Unknown PC. Cannot determine the working directory.")
-}
+setwd("C:/Users/marce/Documents/GitHub/MasterThesis") 
 
 # Load Libaries and Datasets ----------------------------------------------
 library(Rprobit)
 library(mlogit)
 
+load(file = "helveston_data_wide.RData")
 cars_data <- mlogit.data(data_wide, varying = 4:51, sep = "_", shape = "wide", choice = "choice", id.var ="id")
 head(cars_data[1:9,1:9])
-load(file = "helveston_data_wide.RData")
 
 
+# On my own right now -----------------------------------------------------
+(form <- formula("choice ~ x"))
+P = 1
 
 # -------------------------------------------------------------------------
 # MNL estimation for panel data set 
