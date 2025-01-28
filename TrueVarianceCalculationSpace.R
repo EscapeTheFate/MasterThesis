@@ -193,8 +193,8 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
 
 # Obtain Confidence Interval stats ----------------------------------------
 # Get true sd by fitting model to quasi-infinite sample (N extremely large; other parameters fixed)
-rho = seq(from = 0.9, to = -0.9, by = 0.1)
-N = 10000
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = 20000
 Tfull = 5
 
 for (r in rho){
