@@ -244,7 +244,7 @@ get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
 get_simulation_estimates(return_val = "sd")
 
 
-# -------------------------------------------------------------------------
+# Obtain bias stats ------------------------------------------------------
 # To-Do:
 # - Add H/J-Mat conv code (nlm convergence code done)
 # - Improve get_simultion_estimates to only depend on draw_simulation_data
@@ -294,15 +294,14 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
   return(list(beta_bias = beta_bias, omega_bias = omega_bias, rho_bias = rho_bias))
 }
 
-
 #foo = get_bias(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = -0.5)
 #foo$beta_bias
 
 # Define grid level to map get_bias on:
-rho = c(0.5, 0.3, 0.1)
-Tfull = seq(from = 5, to = 50, by = 5)
-N = c(20, 50, 100)
-n_reps = c(100)
+rho = c(0.5, 0.25, 0, -0.25, -0.5)
+Tfull = c(5)
+N = c(5, 10, 20, 30, 40, 50, 100, 200, 500, 750, 1000)
+n_reps = c(200)
 
 create_grid <- function(...) {
   vars <- list(...)
@@ -312,12 +311,27 @@ create_grid <- function(...) {
 
 parameters = create_grid(N, n_reps, Tfull, rho)
 (parameters)
-bias <- Map(get_bias, N, n_reps, Tfull, rho)
+bias <- Map(get_bias, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho)
 
 # Formating results
 bias <- do.call(rbind, bias)
 sim_results <- cbind(parameters, bias)
 sim_results
+
+library(ggplot2)
+library(tidyr)
+
+# Reshape the dataframe using tidyr::pivot_longer
+sim_results_long <- sim_results %>%
+  pivot_longer(
+    cols = c(beta_bias, omega_bias, rho_bias), # Columns to reshape
+    names_to = "coef",                 # New column name for variable names
+    values_to = "bias"                        # New column name for values
+  )
+
+# Create the ggplot
+ggplot(sim_results, aes(x = N, y = beta_bias)) + geom_line(size = 1)
+
 
 
 # Obtain Confidence Interval stats ----------------------------------------
@@ -478,6 +492,10 @@ CI_results_long <- CI_results %>%
     values_to = "rate"                   # New column for percentage rates
   )
 
+# Save calculated dataframe for later
+#write.csv(CI_results, file = "InitialCIresults.csv", row.names = F)
+CI_results = read.csv(file = "~/GitHub/MasterThesis/InitialCIresults.csv")
+
 # Plot using ggplot2
 ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate * 100 for %
   geom_line(size = 1) + geom_point(size = 2) + # line plot with points
@@ -496,6 +514,6 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
              "Tfull: ", CI_results$Tfull[1], "\n",
              "n_reps: ", CI_results$n_reps[1]
            ),
-           hjust = 0, vjust = 0, size = 4, color = "gray50", fontface = "italic"
+           hjust = 0, vjust = 0, size = 10, color = "gray50", fontface = "italic"
   )
 
