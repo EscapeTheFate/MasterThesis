@@ -326,10 +326,10 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
 
 # Define grid level to map get_bias on:
 #rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
-rho = c(0.5, 0.3, 0, -0.3, -0.5)
+rho = c(0.5, 0.3, 0)
 Tfull = c(5)
 N = c(5, 10, 20, 30, 40, 50, 100, 200, 500, 750, 1000)
-n_reps = c(200)
+n_reps = c(100)
 
 create_grid <- function(...) {
   vars <- list(...)
@@ -389,9 +389,9 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5)
   if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    print("All nlm models were successfully estimated")
+    paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
   } else {
-    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge")
+    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
     sim_replications = sim_replications[,-conv_failed_index]
   }
   
@@ -404,7 +404,7 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
   
   # First, load in correct true variance file that was calculated on N = 10000
-  N_to_load <- 50000
+  N_to_load <- 10000
   rho_to_load <- rho
   Tfull_to_load <- Tfull
   
