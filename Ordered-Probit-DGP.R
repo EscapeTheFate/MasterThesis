@@ -299,9 +299,11 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99)
   if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    msg = paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    print(msg)
   } else {
-    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    msg = paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    print(msg)
     sim_replications = sim_replications[,-conv_failed_index]
   }
   
@@ -321,8 +323,8 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
   return(list(beta_bias = beta_bias, omega_bias = omega_bias, rho_bias = rho_bias))
 }
 
-#foo = get_bias(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = -0.5)
-#foo$beta_bias
+foo = get_bias(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = -0.5)
+foo$beta_bias
 
 # Define grid level to map get_bias on:
 #rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
@@ -389,9 +391,11 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5)
   if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    msg = paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    print(msg)
   } else {
-    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    msg = paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    print(msg)
     sim_replications = sim_replications[,-conv_failed_index]
   }
   
