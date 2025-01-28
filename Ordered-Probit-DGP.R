@@ -206,23 +206,50 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
   )
   
   # fit the system with cml_pair_type = 2 (only adjacent pairs + first and last decision)
-  Rprob_mod <- fit_Rprobit(Rprobit_obj, init_method = "theta", cml_pair_type = 0)
+  result <- tryCatch(
+    {
+      Rprob_mod <- fit_Rprobit(Rprobit_obj, init_method = "theta", cml_pair_type = 0)
   
-  if(nzchar(return_val)){
-    switch(return_val,
-           "summary" = return(summary(Rprob_mod)),
-           "var" = return(diag(Rprob_mod$vv)),
-           "sd" = return(sqrt(diag(Rprob_mod$vv)))
-    )
-  } else {
-    # Omega is Var-Cov, d.h. für Vergleich entweder sd quadrieren oder var wurzeln 
-    b = c(b_coef = Rprob_mod$theta[1], b_sd = sqrt(diag(Rprob_mod$vv))[1])
-    omega = c(omega_coef = Rprob_mod$theta[2], omega_sd = sqrt(diag(Rprob_mod$vv))[2]) # coef = omega sd entry, sd = sd of omega sd entry
-    rho = c(rho_coef = Rprob_mod$theta[9], rho_sd = sqrt(diag(Rprob_mod$vv))[9])
-    conv = c(nlm_code = Rprob_mod$info$nlm_info$code)
-    #Rprob_conv = c(H_conv = T, J_conv = T)
-    return(list(b, omega, rho, conv))
-  }
+      if(nzchar(return_val)){
+        switch(return_val,
+               "summary" = summary(Rprob_mod),
+               "var" = diag(Rprob_mod$vv),
+               "sd" = sqrt(diag(Rprob_mod$vv)))
+      } else {
+          # Omega is Var-Cov, d.h. für Vergleich entweder sd quadrieren oder var wurzeln 
+          b = c(b_coef = Rprob_mod$theta[1], b_sd = sqrt(diag(Rprob_mod$vv))[1])
+          omega = c(omega_coef = Rprob_mod$theta[2], omega_sd = sqrt(diag(Rprob_mod$vv))[2]) # coef = omega sd entry, sd = sd of omega sd entry
+          rho = c(rho_coef = Rprob_mod$theta[9], rho_sd = sqrt(diag(Rprob_mod$vv))[9])
+          conv = c(nlm_code = Rprob_mod$info$nlm_info$code)
+          #Rprob_conv = c(H_conv = T, J_conv = T)
+          list(b, omega, rho, conv)
+      }
+    },
+    error = function(e) {
+      if(nzchar(return_val)){
+        switch(return_val,
+               "summary" = print("Model fitting failed: nlm crashed"),
+               "var" = c(rep.int(NA, 9)),
+               "sd" = c(rep.int(NA, 9)))
+        
+        message("Model fitting failed: ", conditionMessage(e))
+      } else {
+          # If an error occurs, return NA values with the same structure
+          b <- c(b_coef = NA, b_sd = NA)
+          omega <- c(omega_coef = NA, omega_sd = NA)
+          rho <- c(rho_coef = NA, rho_sd = NA)
+          conv <- c(nlm_code = 99)
+      
+          message("Model fitting failed: ", conditionMessage(e))
+      
+          # Return the same structure with NA values
+          list(b = b, omega = omega, rho = rho, conv = conv)
+      }
+    }
+  )
+  
+  # Return results 
+  return(result)
 }
 
 set.seed(1)
@@ -231,7 +258,7 @@ get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
                          quest = 1, # num of questions
                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
                          rho = 0.5, # rho in error AR(1)-process
-                         return_val = "summary") # if return should be something else
+                         return_val = "") # if return should be something else
 
 set.seed(1)
 get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
@@ -270,11 +297,11 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
   # Calculate convergence success rate and filter out non-successful coefficient estimates
   conv_tab <- table(unlist(sim_replications[4,]))
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
-  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5)
+  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99)
   if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    print("All nlm models were successfully estimated")
+    paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
   } else {
-    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge")
+    paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
     sim_replications = sim_replications[,-conv_failed_index]
   }
   
@@ -298,7 +325,8 @@ get_bias <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c
 #foo$beta_bias
 
 # Define grid level to map get_bias on:
-rho = c(0.5, 0.25, 0, -0.25, -0.5)
+#rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
+rho = c(0.5, 0.3, 0, -0.3, -0.5)
 Tfull = c(5)
 N = c(5, 10, 20, 30, 40, 50, 100, 200, 500, 750, 1000)
 n_reps = c(200)
@@ -317,6 +345,11 @@ bias <- Map(get_bias, N = parameters$N, n_reps = parameters$n_reps, Tfull = para
 bias <- do.call(rbind, bias)
 sim_results <- cbind(parameters, bias)
 sim_results
+
+# Save calculated dataframe for later
+write.csv(sim_results, file = "InitialBIASresults.csv", row.names = F)
+#sim_results = read.csv(file = "~/GitHub/MasterThesis/InitialBIASresults.csv")
+
 
 library(ggplot2)
 library(tidyr)
