@@ -321,17 +321,6 @@ sim_results
 
 
 # Obtain Confidence Interval stats ----------------------------------------
-# Get true sd by fitting model to quasi-infinite sample (N extremely large; other parameters fixed)
-# set.seed(1)
-# true_var = get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
-#                          N = 50000, # individuals
-#                          quest = 1, # num of questions
-#                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
-#                          rho = 0.5, # rho in error AR(1)-process
-#                          return_val = "var") # if return should be something else
-# (true_var)
-# write.csv(true_var, file = "trueVarRho0.5Tfull5.csv", row.names = F)
-
 get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, return_val = ""){
   
   # Clear warning cache before estimating models
@@ -366,20 +355,41 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   
   
   # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
-  if(file.exists("~/trueVarRho0.5Tfull5.csv")){
-    true_var <- load("trueVarRho0.5Tfull5.csv")
-  } else {
-    true_var <- read.csv("~/GitHub/MasterThesis/trueVarRho0.5Tfull5.csv")
+  
+  # First, load in correct true variance file that was calculated on N = 10000
+  N_to_load <- 50000
+  rho_to_load <- rho
+  Tfull_to_load <- Tfull
+  
+  # construct appropriate filename and routing
+  github_folder <- paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection")
+  filename_to_load <- paste0("trueVarN=", N_to_load, "rho=", rho_to_load, "Tfull=", Tfull_to_load, ".csv")
+  full_path_to_load <- file.path(github_folder, filename_to_load)
+  
+  # Load the file
+  if (file.exists(full_path_to_load)) {
+    true_var <- read.csv(file = full_path_to_load)
     names(true_var) = "true_var"
     true_var <- as.vector(unlist(true_var))
+  } else {
+    print(paste("File not found:", full_path_to_load))
   }
+  
+  
+  # if(file.exists("~/trueVarRho0.5Tfull5.csv")){
+  #   true_var <- load("trueVarRho0.5Tfull5.csv")
+  # } else {
+  #   true_var <- read.csv("~/GitHub/MasterThesis/trueVarRho0.5Tfull5.csv")
+  #   names(true_var) = "true_var"
+  #   true_var <- as.vector(unlist(true_var))
+  # }
   
   adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
     return((N_old*unadjusted_true_var)/N_new)
   }
   
   true_var <- true_var[c(1,2,9)] # beta(1), omega(2), tau(3:8), rho(9)
-  adjusted_variances <- adjust_var_to_N(true_var, N_new = N, N_old = 50000)
+  adjusted_variances <- adjust_var_to_N(true_var, N_new = N, N_old = N_to_load)
   true_parameters = c(beta = beta_coefs[1], omega = 1, rho = rho)
   
   # Calculate (1-alpha)%-CI boundaries
@@ -440,7 +450,7 @@ create_grid <- function(...) {
 }
 
 # ----- Calculate first set (hold everything but N)
-N = c(5, 10, 20, 30, 40, 50, 100, 200)
+N = c(5, 10, 20, 30, 40, 50, 100, 200, 500, 750, 1000)
 Tfull = c(5)
 n_reps = c(200)
 rho = c(0.5)
@@ -478,4 +488,14 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
        color = "Parameter") +
   scale_color_manual(values = c("beta_pc" = "blue", "omega_pc" = "red", "rho_pc" = "green")) +
   theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "top")
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top") + 
+  annotate("text",
+           x = max(CI_results$N) * 0.7, y = 0.3,  # Adjust position
+           label = paste0(
+             "rho: ", CI_results$rho[1], "\n",
+             "Tfull: ", CI_results$Tfull[1], "\n",
+             "n_reps: ", CI_results$n_reps[1]
+           ),
+           hjust = 0, vjust = 0, size = 4, color = "gray50", fontface = "italic"
+  )
+
