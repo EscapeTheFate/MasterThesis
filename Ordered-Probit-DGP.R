@@ -278,7 +278,7 @@ get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
                          quest = 1, # num of questions (master thesis is for now limited to 1)
                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
                          rho = 0.5, # rho in error AR(1)-process
-                         return_val = "", # if return should be something else
+                         return_val = "summary", # if return should be something else
                          DontSkipFit = T) # If simulation 1 to K takes too long, 
                                           # one may stop at k and may want to continue 
                                           # estimating at k+1, then the DGP of iteration
@@ -293,9 +293,9 @@ get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
 # - Slot in stability check infront of parameter grid
 
 get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5,
-                                  return_val = "", timer = c(F, F), DontSkipFit = T, saveEstimates = T){
+                                  return_val = "", timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = T){
 
-  if(timer[1] == T){ # timer = c(inner_timer for get_bias)
+  if(timer_bias){ # timer = c(inner_timer for get_bias)
     parameterMappedTo <- paste0("N=", N, ",rho=", rho, ",Tfull=", Tfull, ",n_reps=", n_reps)
     msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
     tic(msg = msg)
@@ -306,9 +306,9 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
                                                                  beta_coefs, # beta coefs; here: (free, fixed)
                                                                  rho, # rho in error AR(1)-process
                                                                  return_val = return_val, # return coefs & sds
-                                                                 timer = timer[2],
+                                                                 timer = timer_data,
                                                                  DontSkipFit = DontSkipFit)) 
-  if(timer[1] == T){
+  if(timer_bias){
     toc()
   }
   # Overview of sim_replications:
@@ -319,19 +319,23 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
   conv_tab <- table(unlist(sim_replications[4,]))
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99) # code 99 = nlm crashed (no return value)
-  if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    msg = paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
-    print(msg)
+  if (is.integer(conv_failed_index) && length(conv_failed_index) == 0) {
+    # All models successfully estimated
+    msg <- paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
   } else {
-    if(DontSkipFit == F){
-      msg = paste0("Skipped nlm model iterations (",length(conv_failed_index), "/", n_reps,") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
-      print(msg)
+    # Some (or all) models failed
+    if (!DontSkipFit) {
+      msg <- paste0("Skipped nlm model iterations (", length(conv_failed_index), "/", n_reps, 
+                    ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
     } else {
-    msg = paste0("Some nlm models (",length(conv_failed_index), "/", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
-    print(msg)
+      msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
+                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
     }
-    sim_replications = sim_replications[,-conv_failed_index]
+    # Adjust sim_replications to exclude failed indices
+    sim_replications <- sim_replications[, -conv_failed_index]
   }
+  print(msg)
+  cat("\n")
   
   
   # Calculate bias:
@@ -377,7 +381,7 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
       old_path = getwd()
       setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/BiasAvgSD_Folder"))
       write.csv(df, file = filename, row.names = F)
-      msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+      msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
       print(msg)
       setwd(dir = old_path)
     } else {
@@ -385,6 +389,7 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
       msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
       print(msg)
     }
+    cat("\n")
   }
   
   return(list(beta_bias = beta_bias, 
@@ -395,24 +400,24 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
               rho_sd_avg = rho_sd_avg))
 }
 
-foo = get_bias_and_averages(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.9, timer = c(T,T), DontSkipFit = T, saveEstimates = T)
+#foo = get_bias_and_averages(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.9, timer_bias = F, timer_data = F, DontSkipFit = F, saveEstimates = F)
 #foo$beta_bias
-
-
 
 ## Extract bias and averages for different models --------------------------
 
 # Define grid level to map get_bias on:
-rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
+#rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
+rho = 0.5
 Tfull = c(5)
-N = c(5, 10, 20, 30, 40, 50, 100, 200, 500 )
-n_reps = c(100)
+N = c(5, 10, 20, 30, 40, 50, 100, 200, 500)
+n_reps = c(20)
+timer_bias = T
 
-parameters = create_grid(N, n_reps, Tfull, rho)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
 (parameters)
 
 # Fit models to grid
-bias <- Map(get_bias_and_average, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho)
+bias <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
 
 # Formating results
 bias <- do.call(rbind, bias)
@@ -557,6 +562,43 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
            ),
            hjust = 0, vjust = 0, size = 10, color = "gray50", fontface = "italic"
   )
+
+
+
+
+# Obtain Variance resembling True Variance (close enough for large N)------
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+rho = 0.9
+Tfull = 5
+N = 20000 # maybe 20000?
+n_reps = 1
+timer_bias = T
+saveEstimates = F
+
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+
+set.seed(1)
+BiasAvgSD <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
+
+# Extract the SD entries from the list
+beta_sd_avg <- sapply(BiasAvgSD, function(x) x$beta_sd_avg)
+omega_sd_avg <- sapply(BiasAvgSD, function(x) x$omega_sd_avg)
+rho_sd_avg <- sapply(BiasAvgSD, function(x) x$rho_sd_avg)
+
+# Combine them into data frame
+sd_dataframe <- data.frame(
+  rho = parameters$rho,
+  beta_sd_avg = beta_sd_avg,
+  omega_sd_avg = omega_sd_avg,
+  rho_sd_avg = rho_sd_avg
+)
+
+sd_dataframe
+old_path = getwd()
+setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+write.csv(sd_dataframe, file = "CIresults.csv", row.names = F)
+setwd(dir = old_path)
 
 
 # Obtain Confidence Interval stats ----------------------------------------
