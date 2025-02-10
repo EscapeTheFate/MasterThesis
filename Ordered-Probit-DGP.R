@@ -567,18 +567,31 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
 
 
 # Obtain Variance resembling True Variance (close enough for large N)------
-rho = seq(from = -0.9, to = 0.9, by = 0.1)
-rho = 0.9
+# Step 1 (rho -0.9 to -0.1)
+rho = seq(from = -0.9, to = -0.1, by = 0.1)
 Tfull = 5
 N = 20000 # maybe 20000?
-n_reps = 1
+n_reps = 5
 timer_bias = T
-saveEstimates = F
 
 parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
 (parameters)
+set.seed(1) # estimation process for rho = 0 & seed = 1 is bugged, thus estimate in steps
 
-set.seed(1)
+# Step 2 (rho 0 to 0.9)
+rho = seq(from = 0, to = 0.9, by = 0.1)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+set.seed(2)
+
+# Step 3 (rho -0.9 to 0.9 for Tfull 2 to 4)
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+Tfull = 2
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+set.seed(3)
+
+# Fit
 BiasAvgSD <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
 
 # Extract the SD entries from the list
@@ -589,6 +602,8 @@ rho_sd_avg <- sapply(BiasAvgSD, function(x) x$rho_sd_avg)
 # Combine them into data frame
 sd_dataframe <- data.frame(
   rho = parameters$rho,
+  beta_coef = 1,
+  Tfull = 5,
   beta_sd_avg = beta_sd_avg,
   omega_sd_avg = omega_sd_avg,
   rho_sd_avg = rho_sd_avg
@@ -597,9 +612,8 @@ sd_dataframe <- data.frame(
 sd_dataframe
 old_path = getwd()
 setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
-write.csv(sd_dataframe, file = "CIresults.csv", row.names = F)
+write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
 setwd(dir = old_path)
-
 
 # Obtain Confidence Interval stats ----------------------------------------
 get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, return_val = ""){
