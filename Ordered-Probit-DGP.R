@@ -601,6 +601,19 @@ parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
 (parameters)
 set.seed(4)
 
+# Step 5
+rho = seq(from = 0.1, to = 0.7, by = 0.1)
+Tfull = 10
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+set.seed(5)
+
+# Step 6
+rho = seq(from = 0.8, to = 0.9, by = 0.1)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+set.seed(6)
+
 # Fit
 BiasAvgSD <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
 
@@ -622,7 +635,7 @@ sd_dataframe <- data.frame(
 sd_dataframe
 old_path = getwd()
 setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
-#sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
+sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
 #sd_dataframe = dplyr::bind_rows(sd_dataframe2, sd_dataframe)
 #write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
 setwd(dir = old_path)
