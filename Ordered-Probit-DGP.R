@@ -635,10 +635,35 @@ sd_dataframe <- data.frame(
 sd_dataframe
 old_path = getwd()
 setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
-sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
+#sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
 #sd_dataframe = dplyr::bind_rows(sd_dataframe2, sd_dataframe)
 #write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
-setwd(dir = old_path)
+## ----- extracting from dfs
+old_path = getwd()
+setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/BiasAvgSD_Folder"))
+rho = seq(from = 0.1, to = 0.7, by = 0.1)
+sd_missing <- data.frame(
+  rho = rho,
+  beta_coef = 1,
+  Tfull = 10,
+  beta_sd_avg = rep.int(NA, length(rho)),
+  omega_sd_avg = rep.int(NA, length(rho)),
+  rho_sd_avg = rep.int(NA, length(rho))
+)
+for (i in 1:length(rho)){
+  foo = read.csv(file = paste0(getwd(),"/BiasAvgSD_N=20000rho=", rho[i], "Tfull=10nreps=5.csv"))
+  AvgSd = c(mean(foo$beta_sd, na.rm = T),
+            mean(foo$omega_sd, na.rm = T),
+            mean(foo$rho_sd, na.rm = T))
+  sd_missing[i,4:6] = AvgSd
+}
+sd_missing
+# setwd(dir = old_path)
+# setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+# sd_dataframe = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
+# sd_dataframe = dplyr::bind_rows(sd_dataframe, sd_missing)
+# write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
+# setwd(dir = old_path)
 
 # Obtain Confidence Interval stats ----------------------------------------
 get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, return_val = ""){
