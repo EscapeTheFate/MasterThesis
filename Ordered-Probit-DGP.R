@@ -586,10 +586,20 @@ set.seed(2)
 
 # Step 3 (rho -0.9 to 0.9 for Tfull 2 to 4)
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
-Tfull = 2
+Tfull = 2:4
 parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
 (parameters)
 set.seed(3)
+
+# Step 4 (rho -0.9 to 0.9 for Tfull = 10)
+rho = seq(from = -0.9, to = 0, by = 0.1)
+Tfull = 10
+N = 20000 # maybe 20000?
+n_reps = 5
+timer_bias = T
+parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+(parameters)
+set.seed(4)
 
 # Fit
 BiasAvgSD <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
@@ -603,7 +613,7 @@ rho_sd_avg <- sapply(BiasAvgSD, function(x) x$rho_sd_avg)
 sd_dataframe <- data.frame(
   rho = parameters$rho,
   beta_coef = 1,
-  Tfull = 5,
+  Tfull = 10,
   beta_sd_avg = beta_sd_avg,
   omega_sd_avg = omega_sd_avg,
   rho_sd_avg = rho_sd_avg
@@ -612,7 +622,9 @@ sd_dataframe <- data.frame(
 sd_dataframe
 old_path = getwd()
 setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
-write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
+#sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
+#sd_dataframe = dplyr::bind_rows(sd_dataframe2, sd_dataframe)
+#write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
 setwd(dir = old_path)
 
 # Obtain Confidence Interval stats ----------------------------------------
@@ -668,15 +680,6 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   } else {
     print(paste("File not found:", full_path_to_load))
   }
-  
-  
-  # if(file.exists("~/trueVarRho0.5Tfull5.csv")){
-  #   true_var <- load("trueVarRho0.5Tfull5.csv")
-  # } else {
-  #   true_var <- read.csv("~/GitHub/MasterThesis/trueVarRho0.5Tfull5.csv")
-  #   names(true_var) = "true_var"
-  #   true_var <- as.vector(unlist(true_var))
-  # }
   
   adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
     return((N_old*unadjusted_true_var)/N_new)
