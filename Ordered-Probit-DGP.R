@@ -64,40 +64,12 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
   LG = t(chol(system$GammaT))
   LO = t(chol(system$Omega))
   lRE = dim(LO)[1]
-  omega_sd = system$Omega
-  gam = LO %*% rnorm(lRE, sd = omega_sd) # mixed part here
-  
-  # get_AR_epsilon <- function(time, rho, previous_error, Sigma_stationary = c(1), Sigma = c(1)){
-  #   
-  #   get_stationary_epsilon <- function(Sigma = c(1)){
-  #     epsilon = rnorm(n=1, mean = 0, sd = Sigma)
-  #     return(epsilon)
-  #   }
-  #   
-  #   if(time == 1){
-  #     epsilon_1 = get_stationary_epsilon(Sigma_stationary)
-  #     return(epsilon_1)
-  #   }
-  #   else{
-  #     u = get_stationary_epsilon(Sigma)
-  #     epsilon_new = rho * previous_error + u
-  #     return(epsilon_new)
-  #   }
-  # }
+  # omega_sd = system$Omega
+  # gam = LO %*% rnorm(lRE, sd = omega_sd) # mixed part here
+  gam = LO %*% rnorm(lRE) # mixed part here
   
   # Obtain utilities for each choice occasion for individual 1
   U = matrix(0, nrow = Tp)
-  # for (t in 1:Tp){
-  #   if(t == 1){
-  #     epsilon_old = get_AR_epsilon(time = t)
-  #     U[t] = X[t,] %*% b + X[t,1] %*% beta[t] + epsilon_old
-  #   }
-  #   else{
-  #     epsilon_new = get_AR_epsilon(time = t, rho = system$factor, previous_error = epsilon_old)
-  #     U[t] = X[t,] %*% b + X[t,1] %*% beta[t] + epsilon_new
-  #   }
-  #   
-  # }
   U = X %*% system$beta + X[,c(1:lRE)] %*% gam + LG %*% rnorm(dim(LG)[2])
   
   # Choose appropriate alternative by utility value
@@ -121,8 +93,8 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
     latent_class = sample(x = c(1,2,3), size = 1, prob = c(rep.int(1/3,3)))
     latent_means = c(3,5,8)
     X = matrix(0,Tp,2)
-    (X[,1] = rnorm(n = Tp, mean = latent_means[latent_class], sd = 1)) # b=0.5 is free
-    X[,2] = rnorm(n = Tp, mean = 0, sd = 1) # b=1 is fixed 
+    (X[,1] = rnorm(n = Tp, mean = latent_means[latent_class], sd = 1)) # b_1 is free
+    X[,2] = rnorm(n = Tp, mean = 0, sd = 1) # b_2 is fixed 
     tau = system$tauk
     b = system$beta
     #beta = rnorm(n = Tp, mean = 0, sd = 0.5) # mixed part
@@ -130,21 +102,10 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
     LG = t(chol(system$GammaT))
     LO = t(chol(system$Omega))
     lRE = dim(LO)[1]
-    gam = LO %*% rnorm(lRE, sd = omega_sd)
+    gam = LO %*% rnorm(lRE)
     
     # Obtain utilities for each choice occasion for individual 1
     U = matrix(0, nrow = Tp)
-    # for (t in 1:Tp){
-    #   if(t == 1){
-    #     epsilon_old = get_AR_epsilon(time = t)
-    #     U[t] = X[t,] %*% b + X[t,1] %*% beta[t] + epsilon_old
-    #   }
-    #   else{
-    #     epsilon_new = get_AR_epsilon(time = t, rho = system$factor, previous_error = epsilon_old)
-    #     U[t] = X[t,] %*% b + X[t,1] %*% beta[t] + epsilon_new
-    #   }
-    #   
-    # }
     U = X %*% system$beta + X[,c(1:lRE)] %*% gam + LG %*% rnorm(dim(LG)[2])
     
     # Choose appropriate alternative by utility value
@@ -160,7 +121,7 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
 
 get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (time)
                                      N = 100, # individuals
-                                     quest = 1, beta_coefs = c(1, 1), rho = 0.5, return_val = "", timer = F, DontSkipFit = T){
+                                     quest = 1, beta_coefs = c(1, 1), rho = 0.5, omega_var = 1, return_val = "", timer = F, DontSkipFit = T){
   mod <- mod_AR_cl$new(alt  = 7,
                        Hb   = diag(2)[,-2,drop=FALSE],
                        fb   = matrix(0,2,1),
@@ -171,14 +132,13 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
                        ordered = TRUE
   )
   
-  mod$fb[2] = beta_coefs[2] # <- Since b = [b_1 (free), 2 (fixed)], we need to change fb entry
+  mod$fb[2] = beta_coefs[2] # <- Since b = [b_1 (free), 1 (fixed)], we need to change fb entry
   mod$lag_length = 1 # The p of the error AR(p)-process
   mod$stationary <- TRUE # indicates whether the stationary distribution shall be used to start the state process
   
   # Setup for theta_0 true parameter value
   tau = c(0,rep.int(log(2),5))
-  omega = 1
-  theta_0 = c(beta_coefs[1], omega, tau, rho) # (beta (-coef1), Omega, Sigma (-all), tau, rho)
+  theta_0 = c(beta_coefs[1], chol(omega_var), tau, rho) # (beta (-coef1), Omega, Sigma (-all), tau, rho)
   
   # Advance
   time = c(1:Tfull) # choice occasion ID
@@ -273,14 +233,15 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
 }
 
 set.seed(1)
-get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
-                         N = 100, # individuals
+get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
+                         N = 2000, # individuals
                          quest = 1, # num of questions (master thesis is for now limited to 1)
                          beta_coefs = c(1, 1), # beta coefs; here: (free, fixed)
-                         rho = 0.5, # rho in error AR(1)-process
+                         rho = 0.2, # rho in error AR(1)-process
+                         omega_var = 0.5,
                          return_val = "summary", # if return should be something else
-                         DontSkipFit = T) # If simulation 1 to K takes too long, 
-                                          # one may stop at k and may want to continue 
+                         DontSkipFit = T, # If simulation 1 to K takes too long, 
+                         timer = F)       # one may stop at k and may want to continue 
                                           # estimating at k+1, then the DGP of iteration
                                           # 1 to k will be reproduced without estimation (time-consuming),
                                           # to then continue estimating afterwards (don't 
@@ -292,7 +253,7 @@ get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
 # - Improve get_simultion_estimates to only depend on draw_simulation_data
 # - Slot in stability check infront of parameter grid
 
-get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5,
+get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, omega_var = 1,
                                   return_val = "", timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = T){
 
   if(timer_bias){ # timer = c(inner_timer for get_bias)
@@ -305,6 +266,7 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
                                                                  quest, # num of questions
                                                                  beta_coefs, # beta coefs; here: (free, fixed)
                                                                  rho, # rho in error AR(1)-process
+                                                                 omega_var = omega_var,
                                                                  return_val = return_val, # return coefs & sds
                                                                  timer = timer_data,
                                                                  DontSkipFit = DontSkipFit)) 
@@ -400,7 +362,7 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
               rho_sd_avg = rho_sd_avg))
 }
 
-#foo = get_bias_and_averages(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.9, timer_bias = F, timer_data = F, DontSkipFit = F, saveEstimates = F)
+foo = get_bias_and_averages(n_reps = 20, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.9, omega_var = 1, timer_bias = F, timer_data = F, DontSkipFit = F, saveEstimates = F)
 #foo$beta_bias
 
 ## Extract bias and averages for different models --------------------------
@@ -666,14 +628,26 @@ sd_missing
 # setwd(dir = old_path)
 
 # Obtain Confidence Interval stats ----------------------------------------
-get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, return_val = ""){
+get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coefs = c(1,1), rho = 0.5, alpha = 0.05, 
+                           return_val = "", timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = T){
   
+  if(timer_bias){ # timer = c(inner_timer for get_bias)
+    parameterMappedTo <- paste0("N=", N, ",rho=", rho, ",Tfull=", Tfull, ",n_reps=", n_reps)
+    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
+    tic(msg = msg)
+  }
   sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
                                                                  N, # individuals
                                                                  quest, # num of questions
                                                                  beta_coefs, # beta coefs; here: (free, fixed)
                                                                  rho, # rho in error AR(1)-process
-                                                                 return_val = "")) # return coefs & sds
+                                                                 omega_var = omega_var,
+                                                                 return_val = return_val, # return coefs & sds
+                                                                 timer = timer_data,
+                                                                 DontSkipFit = DontSkipFit)) 
+  if(timer_bias){
+    toc()
+  }
                           
   # Overview of sim_replications:
   # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
@@ -682,49 +656,113 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   # Calculate convergence success rate and filter out non-successful coefficient estimates
   conv_tab <- table(unlist(sim_replications[4,]))
   conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
-  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5)
-  if(is.integer(conv_failed_index) && length(conv_failed_index) == 0){
-    msg = paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
-    print(msg)
+  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99) # code 99 = nlm crashed (no return value)
+  if (is.integer(conv_failed_index) && length(conv_failed_index) == 0) {
+    # All models successfully estimated
+    msg <- paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", n_reps=", n_reps, ")")
   } else {
-    msg = paste0("Some nlm models (",length(conv_failed_index), "out of", n_reps,") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
-    print(msg)
-    sim_replications = sim_replications[,-conv_failed_index]
+    # Some (or all) models failed
+    if (!DontSkipFit) {
+      msg <- paste0("Skipped nlm model iterations (", length(conv_failed_index), "/", n_reps, 
+                    ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, "n_reps=", n_reps, ")")
+    } else {
+      msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
+                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, "n_reps=", n_reps, ")")
+    }
+    # Adjust sim_replications to exclude failed indices
+    sim_replications <- sim_replications[, -conv_failed_index]
   }
+  print(msg)
+  cat("\n")
   
   # Get estimates
   beta_estimates <- sapply(sim_replications[1,], function(x) x["b_coef"])
   omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])
   rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])
   
+  if(length(conv_success_index) == 0){
+    # beta_bias = beta_sd_avg = omega_bias = omega_sd_avg = rho_bias = rho_sd_avg = NA
+    # 
+    # return(list(beta_bias = beta_bias, 
+    #             beta_sd_avg = beta_sd_avg,
+    #             omega_bias = omega_bias,
+    #             omega_sd_avg = omega_sd_avg,
+    #             rho_bias = rho_bias,
+    #             rho_sd_avg = rho_sd_avg))
+  }
+  
   
   # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
   
   # First, load in correct true variance file that was calculated on N = 10000
-  N_to_load <- 10000
-  rho_to_load <- rho
-  Tfull_to_load <- Tfull
+  N_to_load <- 20000
+  rho_to_filter <- rho
+  beta_to_filter <- beta_coefs[1]
+  Tfull_to_filter <- Tfull
   
-  # construct appropriate filename and routing
-  github_folder <- paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection")
-  filename_to_load <- paste0("trueVarN=", N_to_load, "rho=", rho_to_load, "Tfull=", Tfull_to_load, ".csv")
-  full_path_to_load <- file.path(github_folder, filename_to_load)
-  
-  # Load the file
-  if (file.exists(full_path_to_load)) {
-    true_var <- read.csv(file = full_path_to_load)
-    names(true_var) = "true_var"
-    true_var <- as.vector(unlist(true_var))
-  } else {
-    print(paste("File not found:", full_path_to_load))
+  if(saveEstimates == T){
+    # Save sds as well:
+    beta_sds = sapply(sim_replications[1,], function(x) x["b_sd"])
+    omega_sds <- sapply(sim_replications[2,], function(x) x["omega_sd"])
+    rho_sds <- sapply(sim_replications[3,], function(x) x["rho_sd"])
+    
+    filename <- paste0("CIresult_", "N=", N, "rho=", rho, "Tfull=", Tfull, "nreps=", n_reps, ".csv")
+    df = data.frame(beta = beta_estimates, 
+                    beta_sd = beta_sds,
+                    omega = omega_estimates,
+                    omega_sd = omega_sds,
+                    rho = rho_estimates,
+                    rho_sd = rho_sds)
+    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))){
+      old_path = getwd()
+      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+      write.csv(df, file = filename, row.names = F)
+      msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
+      print(msg)
+      setwd(dir = old_path)
+    } else {
+      write.csv(df, file = filename, row.names = F)
+      msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+      print(msg)
+    }
+    cat("\n")
   }
   
+  # construct appropriate filename and routing
+  if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))){
+    old_path = getwd()
+    setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+    true_var = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
+    setwd(dir = old_path)
+  } else {
+    msg = paste0("Error: TrueVariance DF file path inaccurate; File not found") 
+    print(msg)
+  }
+  cat("\n")
+  
+  # Extract the correct info out of true var df
+  true_var = dplyr::filter(true_var, rho == rho_to_filter,
+                           beta_coef == beta_to_filter,
+                           Tfull == Tfull_to_filter)
+  if(dim(true_var)[1] == 0){
+    msg = paste0("Error: Didn't find required true var (rho=", rho_to_filter,
+                 ", beta=", beta_to_filter, ", Tfull=", Tfull_to_filter, "); Returning NA value instead")
+    print(msg)
+    cat("\n")
+    
+    return()
+  }
+  
+  # Adjust true var accordingly to sample size 
   adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
     return((N_old*unadjusted_true_var)/N_new)
   }
   
-  true_var <- true_var[c(1,2,9)] # beta(1), omega(2), tau(3:8), rho(9)
-  adjusted_variances <- adjust_var_to_N(true_var, N_new = N, N_old = N_to_load)
+  true_var <- true_var[1,4:6] 
+  true_var <- true_var^2 # because info is SD so far
+  names(true_var) = c("beta_true_var", "omega_true_var", "rho_true_var")
+  
+  adjusted_true_var <- adjust_var_to_N(true_var, N_new = N, N_old = N_to_load)
   true_parameters = c(beta = beta_coefs[1], omega = 1, rho = rho)
   
   # Calculate (1-alpha)%-CI boundaries
@@ -734,8 +772,11 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
     print("Error: Alpha value invalid")
   }
   
-  ci_lower <- true_parameters - z_value * sqrt(adjusted_variances)
-  ci_upper <- true_parameters + z_value * sqrt(adjusted_variances)
+  ci_lower <- true_parameters - z_value * sqrt(adjusted_true_var)
+  ci_lower <- unlist(ci_lower) # beta_true_var omega_true_var rho_true_var
+  
+  ci_upper <- true_parameters + z_value * sqrt(adjusted_true_var)
+  ci_upper <- unlist(ci_upper)
   
   # Check cuccess or failure for each parameter
   success_beta <- sum(beta_estimates >= ci_lower[1] & beta_estimates <= ci_upper[1])
@@ -747,64 +788,69 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_coe
   success_rho <- sum(rho_estimates >= ci_lower[3] & rho_estimates <= ci_upper[3])
   failure_rho <- length(rho_estimates) - success_rho
   
-  
-  if(nzchar(return_val)){
-    return(Success_rate = c(success_beta, success_omega, success_rho)/length(beta_estimates))
-  } else {
   # Display results in table
   results_table <- data.frame(
-    Parameter = c("beta", "omega", "rho"),
-    Total_Estimates = c(rep.int(length(beta_estimates), 3)),
+    Param = c("beta", "omega", "rho"),
+    n_reps = c(rep.int(length(beta_estimates), 3)),
     Success_Count = c(success_beta, success_omega, success_rho),
     Success_rate = c(success_beta, success_omega, success_rho)/length(beta_estimates),
     CI_Lower = ci_lower,
     True_param = true_parameters,
-    CI_Upper = ci_upper
+    CI_Upper = ci_upper,
+    alpha = alpha,
+    rho = rho_to_filter,
+    N = N,
+    Tfull = Tfull_to_filter,
+    row.names = NULL
   )
   
-  # Output
-  print(paste0("Confidence Level: ", (1-alpha)*100, "%"))
-  print(results_table)
-  }
- 
+  return(results_table)
 }
 
-get_CI_results(n_reps = 100,
-               Tfull = 5,
-               N = 50,
-               quest = 1,
-               beta_coefs = c(1,1),
-               rho = 0.5,
-               alpha = 0.05,
-               return_val = "success_rate")
-
-create_grid <- function(...) {
-  vars <- list(...)
-  var_names <- sapply(substitute(list(...))[-1], deparse)
-  setNames(expand.grid(vars), var_names)
-}
+get_CI_results(n_reps = 20, Tfull = 2, N = 100, quest = 1, beta_coefs = c(1,1),
+               rho = 0.5, alpha = 0.05, timer_bias = T, timer_data = T, DontSkipFit = T, saveEstimates = T)
 
 # ----- Calculate first set (hold everything but N)
-N = c(5, 10, 20, 30, 40, 50, 100, 200, 500, 750, 1000)
-Tfull = c(5)
-n_reps = c(200)
-rho = c(0.5)
+n_reps = 200
+Tfull = 2:5
+N = c(10, 20, 30, 40, 50, 100)
+rho = 0.5
 
 parameters = create_grid(N, n_reps, Tfull, rho)
-suppressWarnings({
-success_rates <- Map(get_CI_results, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, return_val = "success_rate")
-})
+(parameters)
 
-# Formating results
-success_rates <- do.call(rbind, success_rates)
-
-CI_results <- cbind(parameters, success_rates)
-names(CI_results)[5:7] = c("beta_pc", "omega_pc", "rho_pc")
+# Fit models
+CI_overview <- Map(get_CI_results, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho)
+CI_results <- dplyr::bind_rows(CI_overview, .id = "Source")
+CI_results = dplyr::select(CI_results, -Source)
 CI_results
 
+old_path = getwd()
+setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+write.csv(CI_results, file = "CIresultDataFrame.csv", row.names = F)
+setwd(dir = old_path)
+
+
+# Graphics for confidence intervals ---------------------------------------
 library(tidyr)
 library(ggplot2)
 
+CI_results_beta = CI_results %>% dplyr::filter(Param == "beta")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# old stuff ---------------------------------------------------------------
 # Reshape to long format
 CI_results_long <- CI_results %>%
   pivot_longer(
