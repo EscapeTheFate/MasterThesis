@@ -10,7 +10,7 @@
 # Load package
 library(Rprobit)
 library(tictoc)
-
+library(purrr)
 
 # Data-Generating-Process Structure
 
@@ -119,9 +119,9 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
   return(df)
 }
 
-get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (time)
-                                     N = 100, # individuals
-                                     quest = 1, beta_free = 1, rho = 0.5, omega_var = 1, return_val = "", timer = F, DontSkipFit = T){
+get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
+                                     N, # individuals
+                                     quest = 1, beta_free, rho, omega_var, return_val = "", timer = F, DontSkipFit = T){
   mod <- mod_AR_cl$new(alt  = 7,
                        Hb   = diag(2)[,-2,drop=FALSE],
                        fb   = matrix(0,2,1),
@@ -191,8 +191,9 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
           omega = c(omega_coef = Rprob_mod$theta[2]^2, omega_sd = sqrt(4*Rprob_mod$theta[2]^2*diag(Rprob_mod$vv)[2])) # coef_omega = theta_omega^2 (omega matrix entry), 
           rho = c(rho_coef = Rprob_mod$theta[9], rho_sd = sqrt(diag(Rprob_mod$vv))[9])                                # sd = delta method (sd of omega mat entry)
           conv = c(nlm_code = Rprob_mod$info$nlm_info$code)
+          tau_raw = c(tau_coef = Rprob_mod$theta[3:8], tau_sd = sqrt(diag(Rprob_mod$vv)[3:8]))
           #Rprob_conv = c(H_conv = T, J_conv = T)
-          list(b, omega, rho, conv)
+          list(b, omega, rho, conv, tau_raw)
       }
     },
     error = function(e) {
@@ -210,11 +211,12 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
           omega <- c(omega_coef = NA, omega_sd = NA)
           rho <- c(rho_coef = NA, rho_sd = NA)
           conv <- c(nlm_code = 99)
+          tau_raw = c(tau_coef = rep.int(NA, 6), tau_sd = rep.int(NA, 6))
       
           message("Model fitting failed: ", conditionMessage(e))
       
           # Return the same structure with NA values
-          list(b = b, omega = omega, rho = rho, conv = conv)
+          list(b = b, omega = omega, rho = rho, conv = conv, tau_raw = tau_raw)
       }
     }
   )
@@ -223,7 +225,8 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
     omega <- c(omega_coef = NA, omega_sd = NA)
     rho <- c(rho_coef = NA, rho_sd = NA)
     conv <- c(nlm_code = 99)
-    result = list(b = b, omega = omega, rho = rho, conv = conv)
+    tau_raw = c(tau_coef = rep.int(NA, 6), tau_sd = rep.int(NA, 6))
+    result = list(b = b, omega = omega, rho = rho, conv = conv, tau_raw = tau_raw)
   }
   if(timer == T){
     toc()
@@ -233,11 +236,11 @@ get_simulation_estimates <- function(Tfull = 5, # number of choice occasions (ti
 }
 
 set.seed(1)
-get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
-                         N = 1000, # individuals
+get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
+                         N = 100, # individuals
                          quest = 1, # num of questions (master thesis is for now limited to 1)
-                         beta_free = 2, # beta coefs; here: (free, fixed)
-                         rho = 0.2, # rho in error AR(1)-process
+                         beta_free = 1, # beta coefs; here: (free, fixed)
+                         rho = 0.5, # rho in error AR(1)-process
                          omega_var = 0.5,
                          return_val = "summary", # if return should be something else
                          DontSkipFit = T, # If simulation 1 to K takes too long, 
@@ -247,18 +250,18 @@ get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
                                           # to then continue estimating afterwards (don't 
                                           # forget to pass on DontSkipFit = F for 1 to k)
 
-# Obtain bias stats ------------------------------------------------------
+# Obtain error stats ------------------------------------------------------
 # To-Do:
 # - Add H/J-Mat conv code (nlm convergence code done)
 # - Improve get_simultion_estimates to only depend on draw_simulation_data
 # - Slot in stability check infront of parameter grid
 
-get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_free = 1, rho = 0.5, omega_var = 1,
-                                  return_val = "", timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = T){
+get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var,
+                                  return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
 
-  if(timer_bias){ # timer = c(inner_timer for get_bias)
-    parameterMappedTo <- paste0("N=", N, ",rho=", rho, ",Tfull=", Tfull, ",n_reps=", n_reps)
-    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
+  if(timer_error){ 
+    parameterMappedTo <- paste0("N=", N, ", Tfull=", Tfull, ", beta=", beta_free, ", rho=", rho, ", omega=", omega_var)
+    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo, " , Finished: [", Sys.time(), "]")
     tic(msg = msg)
   }
   sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
@@ -270,8 +273,13 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
                                                                  return_val = return_val, # return coefs & sds
                                                                  timer = timer_data,
                                                                  DontSkipFit = DontSkipFit)) 
-  if(timer_bias){
-    toc()
+  if(timer_error){
+    # toc()
+    foo = toc(quiet = TRUE)
+    elapsed_time = foo$toc - foo$tic
+    elapsed_minutes = round(elapsed_time/60, 2)
+    cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, "\n"))
+    #cat(sprintf("Elapsed time: %.2f minutes", elapsed_minutes, "; Parameters: ", parameterMappedTo, "\n"))
   }
   # Overview of sim_replications:
   # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
@@ -283,15 +291,14 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99) # code 99 = nlm crashed (no return value)
   if (is.integer(conv_failed_index) && length(conv_failed_index) == 0) {
     # All models successfully estimated
-    msg <- paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+    msg <- paste0("All nlm models (n_reps=", n_reps ,") were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
   } else {
     # Some (or all) models failed
     if (!DontSkipFit) {
-      msg <- paste0("Skipped nlm model iterations (", length(conv_failed_index), "/", n_reps, 
-                    ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+      msg <- paste0("Skipped nlm model iterations (", n_reps, ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     } else {
       msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
-                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ")")
+                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     }
     # Adjust sim_replications to exclude failed indices
     sim_replications <- sim_replications[, -conv_failed_index]
@@ -300,27 +307,27 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
   cat("\n")
   
   
-  # Calculate bias:
+  # Calculate error:
   if(length(conv_success_index) == 0){
-    beta_bias = beta_sd_avg = omega_bias = omega_sd_avg = rho_bias = rho_sd_avg = NA
+    beta_error = beta_sd_avg = omega_error = omega_sd_avg = rho_error = rho_sd_avg = NA
     
-    return(list(beta_bias = beta_bias, 
+    return(list(beta_error = beta_error, 
                 beta_sd_avg = beta_sd_avg,
-                omega_bias = omega_bias,
+                omega_error = omega_error,
                 omega_sd_avg = omega_sd_avg,
-                rho_bias = rho_bias,
+                rho_error = rho_error,
                 rho_sd_avg = rho_sd_avg))
   }
   
-  true_parameters = c(beta = beta_free, omega = 1, rho = rho)
+  true_parameters = c(beta = beta_free, omega = omega_var, rho = rho)
   
-  # Get beta bias
+  # Get beta error
   beta_estimates <- sapply(sim_replications[1,], function(x) x["b_coef"])
-  beta_bias <- mean(beta_estimates - true_parameters["beta"])
+  beta_error <- mean(beta_estimates - true_parameters["beta"])
   
   # Repeat for omega and rho
-  omega_bias <- mean((omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])) - true_parameters["omega"])
-  rho_bias <- mean((rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])) - true_parameters["rho"])
+  omega_error <- mean((omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])) - true_parameters["omega"])
+  rho_error <- mean((rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])) - true_parameters["rho"])
   
   # Now, calculate average standard deviation for each estimate
   # Get average sds:
@@ -332,16 +339,29 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
   rho_sd_avg = mean(rho_sds <- sapply(sim_replications[3,], function(x) x["rho_sd"]))
   
   if(saveEstimates == T){
-    filename <- paste0("BiasAvgSD_", "N=", N, "rho=", rho, "Tfull=", Tfull, "nreps=", n_reps, ".csv")
+    filename <- paste0("ErrAvgSD_", "N=", N, "Tfull=", Tfull, "nreps=", n_reps, "rho=", rho, "beta=", beta_free, "omega=", omega_var, ".csv")
+    
+    # Create df
     df = data.frame(beta = beta_estimates, 
                     beta_sd = beta_sds,
                     omega = omega_estimates,
                     omega_sd = omega_sds,
                     rho = rho_estimates,
                     rho_sd = rho_sds)
-    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/BiasAvgSD_Folder"))){
+    for (i in 1:6){
+      correct_tau = paste0("tau_coef", i)
+      correct_tau_sd = paste0("tau_sd", i)
+      tau_i_estimates = sapply(sim_replications[5,], function(x) x[correct_tau])
+      tau_i_sd = sapply(sim_replications[5,], function(x) x[correct_tau_sd])
+      
+      old_row_count = dim(df)[2]
+      df = cbind(df, tau_i_estimates, tau_i_sd)
+      names(df)[(old_row_count+1):(old_row_count+2)] = c(paste0("tau", i), paste0("tau", i, "_sd"))
+    }
+    
+    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/ErrAvgSD_Folder"))){
       old_path = getwd()
-      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/BiasAvgSD_Folder"))
+      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/ErrAvgSD_Folder"))
       write.csv(df, file = filename, row.names = F)
       msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
       print(msg)
@@ -354,45 +374,45 @@ get_bias_and_averages <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, b
     cat("\n")
   }
   
-  return(list(beta_bias = beta_bias, 
+  return(list(beta_error = beta_error, 
               beta_sd_avg = beta_sd_avg,
-              omega_bias = omega_bias,
+              omega_error = omega_error,
               omega_sd_avg = omega_sd_avg,
-              rho_bias = rho_bias,
+              rho_error = rho_error,
               rho_sd_avg = rho_sd_avg))
 }
 
-#foo = get_bias_and_averages(n_reps = 100, Tfull = 3, N = 100, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.5, timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = F)
-#foo$beta_bias
+#foo = get_error_and_averages(n_reps = 200, Tfull = 3, N = 100, quest = 1, beta_free = 1, rho = 0.5, omega_var = 1, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
+#foo$beta_error
 
-## Extract bias and averages for different models --------------------------
+## Extract error and average sd for different models --------------------------
 
-# Define grid level to map get_bias on:
-#rho = c(0.9, 0.5, 0.25, 0, -0.25, -0.5, -0.9)
-rho = 0.5
-Tfull = c(5)
-N = c(5, 10, 20, 30, 40, 50, 100, 200, 500)
-n_reps = c(20)
-timer_bias = T
+# Define grid level to map get_error on:
+rho = seq(from = -0.9, to = 0, by = 0.1)
+Tfull = c(2) # c(2:5)
+N = c(10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+n_reps = c(500, 1000)
+beta_free = 1
+omega_var = 1
+set.seed(1) # seed.seed(2) für seq(from = 0.1, to = 0.9, by = 0.1)
 
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
-(parameters)
+(parameters = create_grid(rho, N, n_reps, beta_free, omega_var, Tfull))
 
 # Fit models to grid
-bias <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
+error <- pmap(parameters, get_error_and_averages)
+error_results = map_dfr(error, as.data.frame)
 
 # Formating results
-bias <- do.call(rbind, bias)
-sim_results <- cbind(parameters, bias)
+error <- do.call(rbind, error)
+sim_results <- cbind(parameters, error)
 str(sim_results)
-sim_results$beta_bias = unlist(sim_results$beta_bias)
-sim_results$omega_bias = unlist(sim_results$omega_bias)
-sim_results$rho_bias = unlist(sim_results$rho_bias)
+sim_results$beta_error = unlist(sim_results$beta_error)
+sim_results$omega_error = unlist(sim_results$omega_error)
+sim_results$rho_error = unlist(sim_results$rho_error)
 sim_results
 
 # Save calculated dataframe for later
-write.csv(sim_results, file = "BiasResultsDifferentRho.csv", row.names = F)
-#sim_results = read.csv(file = "~/GitHub/MasterThesis/InitialBIASresults.csv")
+write.csv(sim_results, file = "ErrorResultsDifferentRho.csv", row.names = F)
 
 
 library(ggplot2)
@@ -401,21 +421,21 @@ library(tidyr)
 # Reshape the dataframe using tidyr::pivot_longer
 sim_results_long <- sim_results %>%
   pivot_longer(
-    cols = c(beta_bias, omega_bias, rho_bias), # Columns to reshape
+    cols = c(beta_error, omega_error, rho_error), # Columns to reshape
     names_to = "Coefficient",                 # New column name for variable names
-    values_to = "Bias"                        # New column name for values
+    values_to = "Error"                        # New column name for values
   )
 
 # simple plot
 i = 6
-tx = paste0("Beta Bias vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
+tx = paste0("Beta Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
 # Beta plot
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_bias, type = "b", 
+plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error, type = "b", 
      col = "blue",                    
      pch = 19,                        
      lwd = 2,                         
      xlab = "Number of Individuals (N)", 
-     ylab = "Beta Bias",              
+     ylab = "Beta Error",              
      main = tx, 
      cex.axis = 0.9,                  
      cex.lab = 1,                   
@@ -423,13 +443,13 @@ plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$
 grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
 abline(h = 0, col = "black", lty = "dotted", lwd = 2)
 # Omega plot
-tx = paste0("Omega Bias vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$omega_bias, type = "b", 
+tx = paste0("Omega Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
+plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$omega_error, type = "b", 
      col = "red",                    
      pch = 19,                       
      lwd = 2,                         
      xlab = "Number of Individuals (N)", 
-     ylab = "Omega Bias",             
+     ylab = "Omega Error",             
      main = tx, 
      cex.axis = 0.9,                 
      cex.lab = 1,                     
@@ -437,13 +457,13 @@ plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$
 grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
 abline(h = 0, col = "black", lty = "dotted", lwd = 2)
 # Rho plot
-tx = paste0("Rho Bias vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$rho_bias, type = "b", 
+tx = paste0("Rho Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
+plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$rho_error, type = "b", 
      col = "darkgreen",                    # Line color
      pch = 19,                        # Point symbol
      lwd = 2,                         # Line width
      xlab = "Number of Individuals (N)", # X-axis label
-     ylab = "Rho Bias",              # Y-axis label
+     ylab = "Rho Error",              # Y-axis label
      main = tx, # Title
      cex.axis = 0.9,                  # Axis text size
      cex.lab = 1,                     # Label text size
@@ -454,14 +474,14 @@ abline(h = 0, col = "black", lty = "dotted", lwd = 2)
 #
 i = 0
 # Beta plot
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_bias, type = "b", 
+plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error, type = "b", 
      col = "blue",                    
      pch = 19,                        
      lwd = 2,                         
      xlab = "Number of Individuals (N)", 
-     ylab = "Beta Bias",
+     ylab = "Beta Error",
      ylim = c(-0.1, 0.5),
-     main = "Beta Bias vs. Sample Size (N) for varying rho", 
+     main = "Beta Error vs. Sample Size (N) for varying rho", 
      cex.axis = 0.9,                  
      cex.lab = 1,                   
      cex.main = 1.2)
@@ -469,14 +489,14 @@ grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
 abline(h = 0, col = "black", lty = "dotted", lwd = 2)
 colors = c("lightblue", "grey", "green", "yellow", "orange", "red")
 for (i in 1:length(colors)){
-  points(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_bias,
+  points(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error,
          type = "b", pch = 19, col = colors[i], lwd = 2)
 }
 
 
 
 # Create the ggplot
-ggplot(sim_results_long, aes(x = N, y = Bias, color = Coefficient, group = Coefficient)) +
+ggplot(sim_results_long, aes(x = N, y = error, color = Coefficient, group = Coefficient)) +
   geom_line(size = 1.2) +
   geom_point(size = 3) +
   facet_wrap(~ Coefficient, scales = "free_y") +  # Separate plot for each coefficient
@@ -487,24 +507,24 @@ ggplot(sim_results_long, aes(x = N, y = Bias, color = Coefficient, group = Coeff
     panel.grid.minor = element_blank()
   ) +
   labs(
-    title = "Bias of Coefficient Estimates Across N",
+    title = "Error of Coefficient Estimates Across N",
     x = "Number of Individuals (N)",
-    y = "Bias",
+    y = "Error",
     color = "Coefficient") #+
-  # annotate("text", x = max(sim_results$N) * 0.7, y = max(sim_results_long$Bias) * 0.8, 
+  # annotate("text", x = max(sim_results$N) * 0.7, y = max(sim_results_long$error) * 0.8, 
   #          label = paste0("Tfull = ", unique(sim_results$Tfull), 
   #                         "\nrho = ", unique(sim_results$rho), 
   #                         "\nn_reps = ", unique(sim_results$n_reps)),
   #          hjust = 0, color = "black", size = 5, alpha = 0.7)
 foo <- sim_results[,1:5] %>% group_by(rho)
-ggplot(sim_results_long %>% filter(Coefficient == "beta_bias"), aes(x = N, y = Bias, color = rho)) +
+ggplot(sim_results_long %>% filter(Coefficient == "beta_error"), aes(x = N, y = error, color = rho)) +
   geom_line(size = 1.2)
 
 # Print the plot
-print(bias_plot)
+print(error_plot)
 
 # Create the ggplot
-#ggplot(sim_results, aes(x = N, y = beta_bias)) + geom_line(size = 1)
+#ggplot(sim_results, aes(x = N, y = beta_error)) + geom_line(size = 1)
 ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate * 100 for %
   geom_line(size = 1) + geom_point(size = 2) + # line plot with points
   geom_hline(yintercept = 95, linetype = "dotted", color = "black", size = 0.8) + 
@@ -528,28 +548,31 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
 
 
 
+
 # Obtain Variance resembling True Variance (close enough for large N)------
 # Step 1 (rho -0.9 to -0.1)
 rho = seq(from = -0.9, to = -0.1, by = 0.1)
 Tfull = 5
 N = 20000 # maybe 20000?
 n_reps = 5
-timer_bias = T
+timer_error = T
+beta_free = 1
+omega_var = 1
 
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(1) # estimation process for rho = 0 & seed = 1 is bugged, thus estimate in steps
 
 # Step 2 (rho 0 to 0.9)
 rho = seq(from = 0, to = 0.9, by = 0.1)
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(2)
 
 # Step 3 (rho -0.9 to 0.9 for Tfull 2 to 4)
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
 Tfull = 2:4
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(3)
 
@@ -558,68 +581,71 @@ rho = seq(from = -0.9, to = 0, by = 0.1)
 Tfull = 10
 N = 20000 # maybe 20000?
 n_reps = 5
-timer_bias = T
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+timer_error = T
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(4)
 
 # Step 5
 rho = seq(from = 0.1, to = 0.7, by = 0.1)
 Tfull = 10
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(5)
 
 # Step 6
 rho = seq(from = 0.8, to = 0.9, by = 0.1)
-parameters = create_grid(N, n_reps, Tfull, rho, timer_bias)
+parameters = create_grid(N, n_reps, Tfull, rho, timer_error)
 (parameters)
 set.seed(6)
 
 # Fit
-BiasAvgSD <- Map(get_bias_and_averages, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho, timer_bias = parameters$timer_bias)
+TrueVarInfo <- pmap(parameters, get_error_and_averages)
+TrueVarResults = map_dfr(TrueVarInfo, as.data.frame) %>% select(beta_sd_avg, omega_sd_avg, rho_sd_avg)
 
 # Extract the SD entries from the list
-beta_sd_avg <- sapply(BiasAvgSD, function(x) x$beta_sd_avg)
-omega_sd_avg <- sapply(BiasAvgSD, function(x) x$omega_sd_avg)
-rho_sd_avg <- sapply(BiasAvgSD, function(x) x$rho_sd_avg)
+beta_sd_avg <- sapply(TrueVarInfo, function(x) x$beta_sd_avg)
+omega_sd_avg <- sapply(TrueVarInfo, function(x) x$omega_sd_avg)
+rho_sd_avg <- sapply(TrueVarInfo, function(x) x$rho_sd_avg)
 
 # Combine them into data frame
 sd_dataframe <- data.frame(
   rho = parameters$rho,
-  beta_coef = 1,
-  Tfull = 10,
+  beta_coef = parameters$beta_free,
+  Tfull = parameters$Tfull,
   beta_sd_avg = beta_sd_avg,
   omega_sd_avg = omega_sd_avg,
-  rho_sd_avg = rho_sd_avg
+  rho_sd_avg = rho_sd_avg,
+  N = parameters$N,
+  omega_var = parameters$omega_var
 )
 
 sd_dataframe
-old_path = getwd()
-setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
+#old_path = getwd()
+#setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
 #sd_dataframe2 = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
 #sd_dataframe = dplyr::bind_rows(sd_dataframe2, sd_dataframe)
 #write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
 ## ----- extracting from dfs
-old_path = getwd()
-setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/BiasAvgSD_Folder"))
-rho = seq(from = 0.1, to = 0.7, by = 0.1)
-sd_missing <- data.frame(
-  rho = rho,
-  beta_coef = 1,
-  Tfull = 10,
-  beta_sd_avg = rep.int(NA, length(rho)),
-  omega_sd_avg = rep.int(NA, length(rho)),
-  rho_sd_avg = rep.int(NA, length(rho))
-)
-for (i in 1:length(rho)){
-  foo = read.csv(file = paste0(getwd(),"/BiasAvgSD_N=20000rho=", rho[i], "Tfull=10nreps=5.csv"))
-  AvgSd = c(mean(foo$beta_sd, na.rm = T),
-            mean(foo$omega_sd, na.rm = T),
-            mean(foo$rho_sd, na.rm = T))
-  sd_missing[i,4:6] = AvgSd
-}
-sd_missing
+# old_path = getwd()
+# setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder"))
+# rho = seq(from = 0.1, to = 0.7, by = 0.1)
+# sd_missing <- data.frame(
+#   rho = rho,
+#   beta_coef = 1,
+#   Tfull = 10,
+#   beta_sd_avg = rep.int(NA, length(rho)),
+#   omega_sd_avg = rep.int(NA, length(rho)),
+#   rho_sd_avg = rep.int(NA, length(rho))
+# )
+# for (i in 1:length(rho)){
+#   foo = read.csv(file = paste0(getwd(),"/ErrAvgSD_N=20000rho=", rho[i], "Tfull=10nreps=5.csv"))
+#   AvgSd = c(mean(foo$beta_sd, na.rm = T),
+#             mean(foo$omega_sd, na.rm = T),
+#             mean(foo$rho_sd, na.rm = T))
+#   sd_missing[i,4:6] = AvgSd
+# }
+# sd_missing
 # setwd(dir = old_path)
 # setwd(dir = paste0(getwd(), "/GitHub/MasterThesis/TrueVarianceInfoCollection"))
 # sd_dataframe = read.csv(file = paste0(getwd(),"/TrueVarianceDataframe.csv"))
@@ -628,12 +654,12 @@ sd_missing
 # setwd(dir = old_path)
 
 # Obtain Confidence Interval stats ----------------------------------------
-get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_free = 1, rho = 0.5, alpha = 0.05, 
-                           return_val = "", timer_bias = F, timer_data = F, DontSkipFit = T, saveEstimates = T){
+get_CI_results <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var, alpha = 0.05, 
+                           return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
   
-  if(timer_bias){ # timer = c(inner_timer for get_bias)
-    parameterMappedTo <- paste0("N=", N, ",rho=", rho, ",Tfull=", Tfull, ",n_reps=", n_reps)
-    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
+  if(timer_error){ 
+    parameterMappedTo <- paste0("N=", N, ", Tfull=", Tfull, ", beta=", beta_free, ", rho=", rho, ", omega=", omega_var)
+    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo, " , Finished: [", Sys.time(), "]")
     tic(msg = msg)
   }
   sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
@@ -645,8 +671,13 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
                                                                  return_val = return_val, # return coefs & sds
                                                                  timer = timer_data,
                                                                  DontSkipFit = DontSkipFit)) 
-  if(timer_bias){
-    toc()
+  if(timer_error){
+    # toc()
+    foo = toc(quiet = TRUE)
+    elapsed_time = foo$toc - foo$tic
+    elapsed_minutes = round(elapsed_time/60, 2)
+    cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, "\n"))
+    #cat(sprintf("Elapsed time: %.2f minutes", elapsed_minutes, "; Parameters: ", parameterMappedTo, "\n"))
   }
                           
   # Overview of sim_replications:
@@ -659,15 +690,14 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
   conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99) # code 99 = nlm crashed (no return value)
   if (is.integer(conv_failed_index) && length(conv_failed_index) == 0) {
     # All models successfully estimated
-    msg <- paste0("All nlm models were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", n_reps=", n_reps, ")")
+    msg <- paste0("All nlm models (n_reps=", n_reps ,") were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
   } else {
     # Some (or all) models failed
     if (!DontSkipFit) {
-      msg <- paste0("Skipped nlm model iterations (", length(conv_failed_index), "/", n_reps, 
-                    ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, "n_reps=", n_reps, ")")
+      msg <- paste0("Skipped nlm model iterations (", n_reps, ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     } else {
       msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
-                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, "n_reps=", n_reps, ")")
+                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     }
     # Adjust sim_replications to exclude failed indices
     sim_replications <- sim_replications[, -conv_failed_index]
@@ -675,29 +705,43 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
   print(msg)
   cat("\n")
   
+  # Save true parameter
+  true_parameters = c(beta = beta_free, omega = omega_var, rho = rho)
+  
+  # If all estimations failed/were skipped, return NA
+  if(length(conv_success_index) == 0){
+    
+    results_table <- data.frame(
+      Param = c("beta", "omega", "rho"),
+      n_reps = c(rep.int(0, 3)),
+      Success_Count = c(rep.int(NA, 3)),
+      Success_rate = c(rep.int(NA, 3)),
+      CI_Lower = c(rep.int(NA, 3)),
+      True_param = true_parameters,
+      CI_Upper = c(rep.int(NA, 3)),
+      alpha = alpha,
+      N = N,
+      Tfull = Tfull,
+      rho = rho,
+      beta = beta_free,
+      omega_var = omega_var,
+      row.names = NULL
+    )
+    
+    return(results_table)
+  }
+  
   # Get estimates
   beta_estimates <- sapply(sim_replications[1,], function(x) x["b_coef"])
   omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])
   rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])
   
-  if(length(conv_success_index) == 0){
-    # beta_bias = beta_sd_avg = omega_bias = omega_sd_avg = rho_bias = rho_sd_avg = NA
-    # 
-    # return(list(beta_bias = beta_bias, 
-    #             beta_sd_avg = beta_sd_avg,
-    #             omega_bias = omega_bias,
-    #             omega_sd_avg = omega_sd_avg,
-    #             rho_bias = rho_bias,
-    #             rho_sd_avg = rho_sd_avg))
-  }
-  
-  
   # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
   
-  # First, load in correct true variance file that was calculated on N = 10000
-  N_to_load <- 20000
+  # First, load in correct true variance file that was calculated on large N
   rho_to_filter <- rho
   beta_to_filter <- beta_free
+  omega_to_filter <- omega_var
   Tfull_to_filter <- Tfull
   
   if(saveEstimates == T){
@@ -706,13 +750,26 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
     omega_sds <- sapply(sim_replications[2,], function(x) x["omega_sd"])
     rho_sds <- sapply(sim_replications[3,], function(x) x["rho_sd"])
     
-    filename <- paste0("CIresult_", "N=", N, "rho=", rho, "Tfull=", Tfull, "nreps=", n_reps, ".csv")
+    filename <- paste0("ConInt_", "N=", N, "Tfull=", Tfull, "nreps=", n_reps, "rho=", rho, "beta=", beta_free, "omega=", omega_var, ".csv")
+    
+    # Create df
     df = data.frame(beta = beta_estimates, 
                     beta_sd = beta_sds,
                     omega = omega_estimates,
                     omega_sd = omega_sds,
                     rho = rho_estimates,
                     rho_sd = rho_sds)
+    for (i in 1:6){
+      correct_tau = paste0("tau_coef", i)
+      correct_tau_sd = paste0("tau_sd", i)
+      tau_i_estimates = sapply(sim_replications[5,], function(x) x[correct_tau])
+      tau_i_sd = sapply(sim_replications[5,], function(x) x[correct_tau_sd])
+      
+      old_row_count = dim(df)[2]
+      df = cbind(df, tau_i_estimates, tau_i_sd)
+      names(df)[(old_row_count+1):(old_row_count+2)] = c(paste0("tau", i), paste0("tau", i, "_sd"))
+    }
+    
     if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))){
       old_path = getwd()
       setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))
@@ -728,7 +785,7 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
     cat("\n")
   }
   
-  # construct appropriate filename and routing
+  # Loading true variance dataframe that contains all necessary info
   if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))){
     old_path = getwd()
     setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/TrueVarianceInfoCollection"))
@@ -743,14 +800,31 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
   # Extract the correct info out of true var df
   true_var = dplyr::filter(true_var, rho == rho_to_filter,
                            beta_coef == beta_to_filter,
-                           Tfull == Tfull_to_filter)
+                           Tfull == Tfull_to_filter,
+                           omega_var == omega_to_filter)
   if(dim(true_var)[1] == 0){
     msg = paste0("Error: Didn't find required true var (rho=", rho_to_filter,
-                 ", beta=", beta_to_filter, ", Tfull=", Tfull_to_filter, "); Returning NA value instead")
+                 ", beta=", beta_to_filter, ", Tfull=", Tfull_to_filter, ", omega=", omega_to_filter, "); Returning NA value instead")
     print(msg)
     cat("\n")
     
-    return()
+    results_table <- data.frame(
+      Param = c("beta", "omega", "rho"),
+      n_reps = c(rep.int(length(beta_estimates), 3)),
+      Success_Count = c(rep.int(NA, 3)),
+      Success_rate = c(rep.int(NA, 3)),
+      CI_Lower = c(rep.int(NA, 3)),
+      True_param = true_parameters,
+      CI_Upper = c(rep.int(NA, 3)),
+      alpha = alpha,
+      N = N,
+      Tfull = Tfull_to_filter,
+      rho = rho_to_filter,
+      beta = beta_to_filter,
+      omega_var = omega_to_filter,
+      row.names = NULL
+    )
+    return(results_table)
   }
   
   # Adjust true var accordingly to sample size 
@@ -758,12 +832,12 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
     return((N_old*unadjusted_true_var)/N_new)
   }
   
+  N_to_load = true_var$N
   true_var <- true_var[1,4:6] 
   true_var <- true_var^2 # because info is SD so far
   names(true_var) = c("beta_true_var", "omega_true_var", "rho_true_var")
   
   adjusted_true_var <- adjust_var_to_N(true_var, N_new = N, N_old = N_to_load)
-  true_parameters = c(beta = beta_free, omega = 1, rho = rho)
   
   # Calculate (1-alpha)%-CI boundaries
   if(alpha > 0 & alpha < 1){
@@ -798,9 +872,11 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
     True_param = true_parameters,
     CI_Upper = ci_upper,
     alpha = alpha,
-    rho = rho_to_filter,
     N = N,
     Tfull = Tfull_to_filter,
+    rho = rho_to_filter,
+    beta = beta_to_filter,
+    omega_var = omega_to_filter,
     row.names = NULL
   )
   
@@ -808,24 +884,27 @@ get_CI_results <- function(n_reps = 200, Tfull = 5, N = 100, quest = 1, beta_fre
 }
 
 get_CI_results(n_reps = 20, Tfull = 2, N = 100, quest = 1, beta_free = 1,
-               rho = 0.5, alpha = 0.05, timer_bias = T, timer_data = T, DontSkipFit = T, saveEstimates = T)
+               rho = 0.55, omega_var = 1, alpha = 0.05, timer_error = T, timer_data = T, DontSkipFit = F, saveEstimates = T)
 
 # ----- Calculate first set (hold everything but N)
 n_reps = 200
-Tfull = 2:5
+Tfull = 2
 N = c(10, 20, 30, 40, 50, 100)
 rho = 0.5
+omega_var = 1
+beta_free = 1
 
-parameters = create_grid(N, n_reps, Tfull, rho)
+
+parameters = create_grid(N, n_reps, Tfull, rho, beta_free, omega_var)
 (parameters)
 
 # Fit models
-CI_overview <- Map(get_CI_results, N = parameters$N, n_reps = parameters$n_reps, Tfull = parameters$Tfull, rho = parameters$rho)
+
+CI_overview <- pmap(parameters, get_CI_results)
 
 # Extract info
-CI_results <- dplyr::bind_rows(CI_overview, .id = "Source")
-CI_results = dplyr::select(CI_results, -Source)
-CI_results
+#(CI_results <- dplyr::select(dplyr::bind_rows(CI_overview, .id = "Source"), -Source))
+CI_results = map_dfr(CI_overview, as.data.frame)
 
 # Save info
 old_path = getwd()
