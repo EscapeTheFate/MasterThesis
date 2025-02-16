@@ -59,13 +59,11 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
   X[,2] = rnorm(n = Tp, mean = 0, sd = 1) # b_2 is fixed 
   tau = system$tauk
   b = system$beta
-  #beta = rnorm(n = Tp, mean = 0, sd = 0.5) # mixed part
-  #epsilon = rnorm(n = 1, sd = system$Sigma)
+  
   LG = t(chol(system$GammaT))
   LO = t(chol(system$Omega))
   lRE = dim(LO)[1]
-  # omega_sd = system$Omega
-  # gam = LO %*% rnorm(lRE, sd = omega_sd) # mixed part here
+  
   gam = LO %*% rnorm(lRE) # mixed part here
   
   # Obtain utilities for each choice occasion for individual 1
@@ -91,7 +89,6 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
   # cycle over deciders 
   for (j in 2:N){
     latent_class = sample(x = c(1,2,3), size = 1, prob = c(rep.int(1/3,3)))
-    latent_means = c(3,5,8)
     X = matrix(0,Tp,2)
     (X[,1] = rnorm(n = Tp, mean = latent_means[latent_class], sd = 1)) # b_1 is free
     X[,2] = rnorm(n = Tp, mean = 0, sd = 1) # b_2 is fixed 
@@ -235,133 +232,125 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
   return(result)
 }
 
-set.seed(1)
-get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
-                         N = 100, # individuals
-                         quest = 1, # num of questions (master thesis is for now limited to 1)
-                         beta_free = 1, # beta coefs; here: (free, fixed)
-                         rho = 0.5, # rho in error AR(1)-process
-                         omega_var = 0.5,
-                         return_val = "summary", # if return should be something else
-                         DontSkipFit = T, # If simulation 1 to K takes too long, 
-                         timer = F)       # one may stop at k and may want to continue 
-                                          # estimating at k+1, then the DGP of iteration
-                                          # 1 to k will be reproduced without estimation (time-consuming),
-                                          # to then continue estimating afterwards (don't 
-                                          # forget to pass on DontSkipFit = F for 1 to k)
+# set.seed(1) ----
+# get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
+#                          N = 100, # individuals
+#                          quest = 1, # num of questions (master thesis is for now limited to 1)
+#                          beta_free = 1, # beta coefs; here: (free, fixed)
+#                          rho = 0.5, # rho in error AR(1)-process
+#                          omega_var = 0.5,
+#                          return_val = "summary", # if return should be something else
+#                          DontSkipFit = T, # If simulation 1 to K takes too long, 
+#                          timer = F)       # one may stop at k and may want to continue 
+#                                           # estimating at k+1, then the DGP of iteration
+#                                           # 1 to k will be reproduced without estimation (time-consuming),
+#                                           # to then continue estimating afterwards (don't 
+#                                           # forget to pass on DontSkipFit = F for 1 to k)
 
 # Obtain error stats ------------------------------------------------------
 # To-Do:
-# - Add H/J-Mat conv code (nlm convergence code done)
-# - Improve get_simultion_estimates to only depend on draw_simulation_data
 # - Slot in stability check infront of parameter grid
+
+library(future.apply)
+plan(multisession)
 
 get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var,
                                   return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
 
   if(timer_error){ 
     parameterMappedTo <- paste0("N=", N, ", Tfull=", Tfull, ", beta=", beta_free, ", rho=", rho, ", omega=", omega_var)
-    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo, " , Finished: [", Sys.time(), "]")
+    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
     tic(msg = msg)
   }
-  sim_replications <- replicate(n_reps, get_simulation_estimates(Tfull, # number of choice occasions (time)
-                                                                 N, # individuals
-                                                                 quest, # num of questions
-                                                                 beta_free, # beta coefs; here: (free, fixed)
-                                                                 rho, # rho in error AR(1)-process
-                                                                 omega_var = omega_var,
-                                                                 return_val = return_val, # return coefs & sds
-                                                                 timer = timer_data,
-                                                                 DontSkipFit = DontSkipFit)) 
+  
+  sim_replications <- future_replicate(n_reps, get_simulation_estimates(
+    Tfull, N, quest, beta_free, rho, omega_var, return_val, timer_data, DontSkipFit),
+    simplify = FALSE) 
+  
   if(timer_error){
     # toc()
     foo = toc(quiet = TRUE)
     elapsed_time = foo$toc - foo$tic
     elapsed_minutes = round(elapsed_time/60, 2)
-    cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, "\n"))
-    #cat(sprintf("Elapsed time: %.2f minutes", elapsed_minutes, "; Parameters: ", parameterMappedTo, "\n"))
+    cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, " , Finished: [", Sys.time(), "]\n"))
   }
   # Overview of sim_replications:
   # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
   # - Columns = n_reps
   
   # Calculate convergence success rate and filter out non-successful coefficient estimates
-  conv_tab <- table(unlist(sim_replications[4,]))
-  conv_success_index <- which(sim_replications[4,] == 1 | sim_replications[4,] == 2 | sim_replications[4,] == 3) # for whatever reason %in% does not work
-  conv_failed_index <- which(sim_replications[4,] == 4 | sim_replications[4,] == 5 | sim_replications[4,] == 99) # code 99 = nlm crashed (no return value)
-  if (is.integer(conv_failed_index) && length(conv_failed_index) == 0) {
-    # All models successfully estimated
-    msg <- paste0("All nlm models (n_reps=", n_reps ,") were successfully estimated (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
+  conv_status <- sapply(sim_replications, function(x) x[[4]]["nlm_code"])
+  conv_success_index <- conv_status %in% c(1, 2, 3)
+  conv_failed_index <- conv_status %in% c(4, 5, 99) # code 99 for nlm crash
+  
+  if(sum(conv_failed_index) == 0 & DontSkipFit == T){
+    msg <- paste0("All nlm models (n_reps=", n_reps, ") were successfully estimated (N=", N, 
+                  ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
   } else {
-    # Some (or all) models failed
     if (!DontSkipFit) {
-      msg <- paste0("Skipped nlm model iterations (", n_reps, ") (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
+      msg <- paste0("Skipped nlm model iterations (", n_reps, ") (N=", N, ", Tfull=", Tfull, 
+                    ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     } else {
       msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
-                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
+                    ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, 
+                    ", omega=", omega_var, ")")
     }
-    # Adjust sim_replications to exclude failed indices
-    sim_replications <- sim_replications[, -conv_failed_index]
+    
+    # Remove failed iterations
+    sim_replications <- sim_replications[conv_success_index]
   }
   print(msg)
   cat("\n")
   
-  
-  # Calculate error:
-  if(length(conv_success_index) == 0){
-    beta_error = beta_sd_avg = omega_error = omega_sd_avg = rho_error = rho_sd_avg = NA
-    
-    return(list(beta_error = beta_error, 
-                beta_sd_avg = beta_sd_avg,
-                omega_error = omega_error,
-                omega_sd_avg = omega_sd_avg,
-                rho_error = rho_error,
-                rho_sd_avg = rho_sd_avg))
+  if(sum(conv_success_index) == 0){
+    return(list(beta_error = NA, beta_sd_avg = NA, omega_error = NA, omega_sd_avg = NA,
+                rho_error = NA, rho_sd_avg = NA))
   }
   
-  true_parameters = c(beta = beta_free, omega = omega_var, rho = rho)
+  ## Calculate error
   
-  # Get beta error
-  beta_estimates <- sapply(sim_replications[1,], function(x) x["b_coef"])
+  # Get estimates
+  beta_estimates <- sapply(sim_replications, function(x) x[[1]]["b_coef"])
+  omega_estimates <- sapply(sim_replications, function(x) x[[2]]["omega_coef"]) 
+  rho_estimates <- sapply(sim_replications, function(x) x[[3]]["rho_coef"])
+  
+  true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
+  
+  # Get mean error
   beta_error <- mean(beta_estimates - true_parameters["beta"])
-  
-  # Repeat for omega and rho
-  omega_error <- mean((omega_estimates <- sapply(sim_replications[2,], function(x) x["omega_coef"])) - true_parameters["omega"])
-  rho_error <- mean((rho_estimates <- sapply(sim_replications[3,], function(x) x["rho_coef"])) - true_parameters["rho"])
+  omega_error <- mean(omega_estimates - true_parameters["omega"]) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_error <- mean(rho_estimates - true_parameters["rho"])
   
   # Now, calculate average standard deviation for each estimate
-  # Get average sds:
-  beta_sds = sapply(sim_replications[1,], function(x) x["b_sd"])
-  beta_sd_avg = mean(beta_sds)
+  beta_sd_avg <- mean(beta_sds <- sapply(sim_replications, function(x) x[[1]]["b_sd"]))
+  omega_sd_avg <- mean(omega_sds <- sapply(sim_replications, function(x) x[[2]]["omega_sd"])) # these are sd's of omega_var
+  rho_sd_avg <- mean(rho_sds <- sapply(sim_replications, function(x) x[[3]]["rho_sd"]))
   
-  # Repeat for omega and rho
-  omega_sd_avg = mean(omega_sds <- sapply(sim_replications[2,], function(x) x["omega_sd"]))
-  rho_sd_avg = mean(rho_sds <- sapply(sim_replications[3,], function(x) x["rho_sd"]))
-  
-  if(saveEstimates == T){
-    filename <- paste0("ErrAvgSD_", "N=", N, "Tfull=", Tfull, "nreps=", n_reps, "rho=", rho, "beta=", beta_free, "omega=", omega_var, ".csv")
+  if(saveEstimates){
+    filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                       "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
     
-    # Create df
-    df = data.frame(beta = beta_estimates, 
-                    beta_sd = beta_sds,
-                    omega = omega_estimates,
-                    omega_sd = omega_sds,
-                    rho = rho_estimates,
-                    rho_sd = rho_sds)
+    # Create df of model estimates and save for later CI calcs/if something crashed
+    df = data.frame(beta = beta_estimates, beta_sd = beta_sds,
+                    omega = omega_estimates, omega_sd = omega_sds,
+                    rho = rho_estimates, rho_sd = rho_sds)
+    
     for (i in 1:6){
+      # Extract (raw) tau_i + it's (raw) sd in iteration i
       correct_tau = paste0("tau_coef", i)
       correct_tau_sd = paste0("tau_sd", i)
-      tau_i_estimates = sapply(sim_replications[5,], function(x) x[correct_tau])
-      tau_i_sd = sapply(sim_replications[5,], function(x) x[correct_tau_sd])
+      
+      tau_i_estimates <- sapply(sim_replications, function(x) x[[5]][correct_tau])
+      tau_i_sd <- sapply(sim_replications, function(x) x[[5]][correct_tau_sd])
       
       old_row_count = dim(df)[2]
       df = cbind(df, tau_i_estimates, tau_i_sd)
       names(df)[(old_row_count+1):(old_row_count+2)] = c(paste0("tau", i), paste0("tau", i, "_sd"))
     }
     
-    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/ErrAvgSD_Folder"))){
+    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))){
       old_path = getwd()
-      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/ErrAvgSD_Folder"))
+      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))
       write.csv(df, file = filename, row.names = F)
       msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
       print(msg)
@@ -382,37 +371,45 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-#foo = get_error_and_averages(n_reps = 200, Tfull = 3, N = 100, quest = 1, beta_free = 1, rho = 0.5, omega_var = 1, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
-#foo$beta_error
+# set.seed(1) # ---------
+# foo = get_error_and_averages(n_reps = 200, Tfull = 3, N = 1000, quest = 1, beta_free = 1, rho = 0.5, omega_var = 1, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T)
 
 ## Extract error and average sd for different models --------------------------
 
 # Define grid level to map get_error on:
-rho = seq(from = -0.9, to = 0, by = 0.1)
+rho = seq(from = 0.1, to = 0.9, by = 0.1)
 Tfull = c(2) # c(2:5)
-N = c(10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
+N = c(20, 30, 40, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 n_reps = c(500, 1000)
 beta_free = 1
 omega_var = 1
-set.seed(1) # seed.seed(2) für seq(from = 0.1, to = 0.9, by = 0.1)
+set.seed(2) # seed.seed(2) für seq(from = 0.1, to = 0.9, by = 0.1)
+
+
+N = c(1000)
+n_reps = c(1000)
+set.seed(3) 
+
+rho = seq(from = 0.1, to = 0.9, by = 0.1)
+Tfull = c(3) # c(2:5)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = 1
+set.seed(4) # seed.seed(2) für seq(from = 0.1, to = 0.9, by = 0.1)
 
 (parameters = create_grid(rho, N, n_reps, beta_free, omega_var, Tfull))
 
 # Fit models to grid
 error <- pmap(parameters, get_error_and_averages)
-error_results = map_dfr(error, as.data.frame)
-
-# Formating results
-error <- do.call(rbind, error)
-sim_results <- cbind(parameters, error)
-str(sim_results)
-sim_results$beta_error = unlist(sim_results$beta_error)
-sim_results$omega_error = unlist(sim_results$omega_error)
-sim_results$rho_error = unlist(sim_results$rho_error)
-sim_results
+(error_results = map_dfr(error, as.data.frame))
+(error_results = cbind(error_results, parameters))
 
 # Save calculated dataframe for later
-write.csv(sim_results, file = "ErrorResultsDifferentRho.csv", row.names = F)
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"))
+error_results = dplyr::bind_rows(previous_error_results, error_results)
+write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"), row.names = F)
 
 
 library(ggplot2)
