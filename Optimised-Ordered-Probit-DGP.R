@@ -370,8 +370,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-set.seed(1) # ---------
-foo = get_error_and_averages(n_reps = 2000, Tfull = 2, N = 20, quest = 1, beta_free = 1, rho = -0.9, omega_var = 1, timer_error = F, timer_data = F, DontSkipFit = T, saveEstimates = T)
+# set.seed(1) # ---------
+# foo = get_error_and_averages(n_reps = 2000, Tfull = 2, N = 20, quest = 1, beta_free = 1, rho = -0.9, omega_var = 1, timer_error = F, timer_data = F, DontSkipFit = T, saveEstimates = T)
 
 ## Extract error and average sd for different models --------------------------
 
@@ -384,6 +384,30 @@ omega_var = 1
 Tfull = c(2) # c(2:5)
 set.seed(1) 
 
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = 1
+Tfull = c(2) # c(2:5)
+set.seed(2) 
+
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = 1
+Tfull = c(3) # c(2:5)
+set.seed(3) 
+
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(1000)
+beta_free = 1
+omega_var = 1
+Tfull = c(3:4) # c(2:5)
+set.seed(4) 
+
 # -------------------------------------------------------------------------
 (parameters = create_grid(rho, N, n_reps, beta_free, omega_var, Tfull))
 
@@ -393,10 +417,11 @@ error <- pmap(parameters, get_error_and_averages)
 (error_results = cbind(error_results, parameters))
 
 # Save calculated dataframe for later
-file.exists(paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"))
-previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"))
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_laptop.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_laptop2.csv"))
+error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
 error_results = dplyr::bind_rows(previous_error_results, error_results)
-write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/ErrAvgSD_Folder/ErrorAvgSd_Results.csv"), row.names = F)
+write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
 
 library(ggplot2)
