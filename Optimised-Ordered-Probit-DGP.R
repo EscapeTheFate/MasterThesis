@@ -289,18 +289,18 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
       msg <- paste0("Skipped nlm model iterations (", n_reps, ") (N=", N, ", Tfull=", Tfull, 
                     ", rho=", rho, ", beta=", beta_free, ", omega=", omega_var, ")")
     } else {
-      msg <- paste0("Some nlm models (", length(conv_failed_index), "/", n_reps, 
+      msg <- paste0("Some nlm models (", sum(conv_failed_index), "/", n_reps, 
                     ") failed to converge (N=", N, ", Tfull=", Tfull, ", rho=", rho, ", beta=", beta_free, 
                     ", omega=", omega_var, ")")
     }
     
-    # Remove failed iterations
-    sim_replications <- sim_replications[conv_success_index]
+    # # Remove failed iterations
+    # sim_replications <- sim_replications[conv_success_index] # ---> New version: Use na.rm in mean calc, so that conv info is in estimate df collection
   }
   print(msg)
   cat("\n")
   
-  if(sum(conv_success_index) == 0){
+  if(sum(conv_success_index) == 0){ # only if estimating is skipped, or if everything failed
     return(list(beta_error = NA, beta_sd_avg = NA, omega_error = NA, omega_sd_avg = NA,
                 rho_error = NA, rho_sd_avg = NA))
   }
@@ -315,14 +315,14 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
   true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
   
   # Get mean error
-  beta_error <- mean(beta_estimates - true_parameters["beta"])
-  omega_error <- mean(omega_estimates - true_parameters["omega"]) # we are comparing omega_var entry with estimated omega_var parameter
-  rho_error <- mean(rho_estimates - true_parameters["rho"])
+  beta_error <- mean(beta_estimates - true_parameters["beta"], na.rm = T)
+  omega_error <- mean(omega_estimates - true_parameters["omega"], na.rm = T) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_error <- mean(rho_estimates - true_parameters["rho"], na.rm = T)
   
   # Now, calculate average standard deviation for each estimate
-  beta_sd_avg <- mean(beta_sds <- sapply(sim_replications, function(x) x[[1]]["b_sd"]))
-  omega_sd_avg <- mean(omega_sds <- sapply(sim_replications, function(x) x[[2]]["omega_sd"])) # these are sd's of omega_var
-  rho_sd_avg <- mean(rho_sds <- sapply(sim_replications, function(x) x[[3]]["rho_sd"]))
+  beta_sd_avg <- mean(beta_sds <- sapply(sim_replications, function(x) x[[1]]["b_sd"]), na.rm = T)
+  omega_sd_avg <- mean(omega_sds <- sapply(sim_replications, function(x) x[[2]]["omega_sd"]), na.rm = T) # these are sd's of omega_var
+  rho_sd_avg <- mean(rho_sds <- sapply(sim_replications, function(x) x[[3]]["rho_sd"]), na.rm = T)
   
   if(saveEstimates){
     filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
@@ -331,7 +331,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
     # Create df of model estimates and save for later CI calcs/if something crashed
     df = data.frame(beta = beta_estimates, beta_sd = beta_sds,
                     omega = omega_estimates, omega_sd = omega_sds,
-                    rho = rho_estimates, rho_sd = rho_sds)
+                    rho = rho_estimates, rho_sd = rho_sds,
+                    conv_code = conv_status)
     
     for (i in 1:6){
       # Extract (raw) tau_i + it's (raw) sd in iteration i
@@ -369,8 +370,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-# set.seed(1) # ---------
-# foo = get_error_and_averages(n_reps = 200, Tfull = 3, N = 1000, quest = 1, beta_free = 1, rho = 0.5, omega_var = 1, timer_error = T, timer_data = T, DontSkipFit = T, saveEstimates = T)
+set.seed(1) # ---------
+foo = get_error_and_averages(n_reps = 2000, Tfull = 2, N = 20, quest = 1, beta_free = 1, rho = -0.9, omega_var = 1, timer_error = F, timer_data = F, DontSkipFit = T, saveEstimates = T)
 
 ## Extract error and average sd for different models --------------------------
 
