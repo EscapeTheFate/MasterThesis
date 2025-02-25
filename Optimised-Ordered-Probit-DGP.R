@@ -374,8 +374,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
         msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
         print(msg)
       }
-      cat("\n")
     }
+    cat("\n")
   }
   
   return(list(beta_error = beta_error, 
@@ -451,7 +451,15 @@ omega_var = 1
 Tfull = c(2:4)
 set.seed(30) 
 
-## On work PC --------------------------------------------------------------
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 0, to = 0.9, by = 0.1))
+omega_var = 1
+Tfull = c(2:4)
+set.seed(31) 
+
+## On Work PC --------------------------------------------------------------
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
 n_reps = c(1000)
