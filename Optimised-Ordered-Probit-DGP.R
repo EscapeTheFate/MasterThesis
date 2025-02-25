@@ -347,19 +347,35 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
       names(df)[(old_row_count+1):(old_row_count+2)] = c(paste0("tau", i), paste0("tau", i, "_sd"))
     }
     
-    if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))){
-      old_path = getwd()
-      setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))
-      write.csv(df, file = filename, row.names = F)
-      msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
-      print(msg)
-      setwd(dir = old_path)
+    if(N == 10000 | N == 20000){
+      if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection"))){
+        old_path = getwd()
+        setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection"))
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
+        print(msg)
+        setwd(dir = old_path)
+      } else {
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+        print(msg)
+      }
+      
     } else {
-      write.csv(df, file = filename, row.names = F)
-      msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
-      print(msg)
+      if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))){
+        old_path = getwd()
+        setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/Estimate_Collection"))
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
+        print(msg)
+        setwd(dir = old_path)
+      } else {
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+        print(msg)
+      }
+      cat("\n")
     }
-    cat("\n")
   }
   
   return(list(beta_error = beta_error, 
@@ -370,12 +386,72 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-# set.seed(1) # ---------
-# foo = get_error_and_averages(n_reps = 2000, Tfull = 2, N = 20, quest = 1, beta_free = 1, rho = -0.9, omega_var = 1, timer_error = F, timer_data = F, DontSkipFit = T, saveEstimates = T)
+#set.seed(1) # ---------
+#foo = get_error_and_averages(n_reps = 1, Tfull = 2, N = 20000, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.2^2, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
 
 ## Extract error and average sd for different models --------------------------
 
-# Define grid level to map get_error on:
+# Define grid level to map get_error on (before on all pcs):
+
+## On Home PC --------------------------------------------------------------
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = 1
+Tfull = c(4) 
+set.seed(5) 
+
+rho = seq(from = -0.9, to = 0.9, by = 0.1)
+N = 10000
+n_reps = 5
+beta_free = 1
+omega_var = 1
+Tfull = c(2:4)
+set.seed(6) # set.seed(9) for row 45:57
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = c(0.1^2, 0.2^2)
+Tfull = c(2:4) 
+set.seed(8) # set.seed(9) for N = 125, 150, 200, 300, 500, 1000
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = c(16, 25)
+Tfull = c(2:4) 
+set.seed(12) # set.seed(14) starting from ro 34: parameters = parameters[34:nrow(parameters),]
+# set.seed(15) starting from row 63, set.seed(16) starting from row 92
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(0.5, 0.6)
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(17) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(0, 1.1)
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(24) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.2, 1.3)
+omega_var = 1
+Tfull = c(2:4)
+set.seed(30) 
+
+## On work PC --------------------------------------------------------------
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
 n_reps = c(1000)
@@ -408,8 +484,69 @@ omega_var = 1
 Tfull = c(3:4) # c(2:5)
 set.seed(4) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 0.9
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(11) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 0.8
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(18) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 0.3
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(21) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 0.1
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(23) 
+
+
+## On Prof PC --------------------------------------------------------------
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(500)
+beta_free = 0.7
+omega_var = 1
+Tfull = c(2:4) 
+set.seed(19)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(500)
+beta_free = 0.4
+omega_var = 1
+Tfull = c(2:4) 
+set.seed(20)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(500)
+beta_free = 0.2
+omega_var = 1
+Tfull = c(2:4) 
+set.seed(22)
+
+
+
+
 # -------------------------------------------------------------------------
-(parameters = create_grid(rho, N, n_reps, beta_free, omega_var, Tfull))
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
 
 # Fit models to grid
 error <- pmap(parameters, get_error_and_averages)
@@ -418,8 +555,7 @@ error <- pmap(parameters, get_error_and_averages)
 
 # Save calculated dataframe for later
 file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_laptop.csv"))
-previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_laptop2.csv"))
-error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
 error_results = dplyr::bind_rows(previous_error_results, error_results)
 write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
