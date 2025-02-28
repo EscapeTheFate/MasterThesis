@@ -459,6 +459,22 @@ omega_var = 1
 Tfull = c(2:4)
 set.seed(31) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.8, 1.9, 2)
+omega_var = 1
+Tfull = c(2:4)
+set.seed(37) # set.seed(40) starting from row 856, adjust later for prior rows
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.4, 2.5)
+omega_var = 1
+Tfull = c(2:4)
+set.seed(41) 
+
 ## On Work PC --------------------------------------------------------------
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
@@ -524,6 +540,21 @@ omega_var = 1
 Tfull = c(2:4) # c(2:5)
 set.seed(23) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.6, 1.7)
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(38) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.7)
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(42) 
 
 ## On Prof PC --------------------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
@@ -550,10 +581,18 @@ omega_var = 1
 Tfull = c(2:4) 
 set.seed(22)
 
+# True Variance calcs -----------------------------------------------------
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000) 
+n_reps = c(1)
+beta_free = c(seq(from = 0, to = 0.9, by = 0.1))
+omega_var = 1
+Tfull = c(2:4) 
+set.seed(31) # set.seed(35) starting from row 159
 
 
+# Fit grid and obtain results ---------------------------------------------
 
-# -------------------------------------------------------------------------
 (parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
 
 # Fit models to grid
@@ -562,122 +601,118 @@ error <- pmap(parameters, get_error_and_averages)
 (error_results = cbind(error_results, parameters))
 
 # Save calculated dataframe for later
-file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_laptop.csv"))
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
 previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
 error_results = dplyr::bind_rows(previous_error_results, error_results)
 write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
 
-library(ggplot2)
-library(tidyr)
+## Recalc results from estimate collection ---------------------------------
 
-# Reshape the dataframe using tidyr::pivot_longer
-sim_results_long <- sim_results %>%
-  pivot_longer(
-    cols = c(beta_error, omega_error, rho_error), # Columns to reshape
-    names_to = "Coefficient",                 # New column name for variable names
-    values_to = "Error"                        # New column name for values
-  )
+# Parameter sets that need to be included in results:
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = 1
+omega_var = c(16, 25)
+Tfull = c(2:4) 
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+set.seed(12) # set.seed(14) starting from ro 34: parameters = parameters[34:nrow(parameters),]
+# set.seed(15) starting from row 63, set.seed(16) starting from row 92
 
-# simple plot
-i = 6
-tx = paste0("Beta Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
-# Beta plot
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error, type = "b", 
-     col = "blue",                    
-     pch = 19,                        
-     lwd = 2,                         
-     xlab = "Number of Individuals (N)", 
-     ylab = "Beta Error",              
-     main = tx, 
-     cex.axis = 0.9,                  
-     cex.lab = 1,                   
-     cex.main = 1.2)
-grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
-abline(h = 0, col = "black", lty = "dotted", lwd = 2)
-# Omega plot
-tx = paste0("Omega Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$omega_error, type = "b", 
-     col = "red",                    
-     pch = 19,                       
-     lwd = 2,                         
-     xlab = "Number of Individuals (N)", 
-     ylab = "Omega Error",             
-     main = tx, 
-     cex.axis = 0.9,                 
-     cex.lab = 1,                     
-     cex.main = 1.2)
-grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
-abline(h = 0, col = "black", lty = "dotted", lwd = 2)
-# Rho plot
-tx = paste0("Rho Error vs. Sample Size (N) for rho =", sim_results[(i*9+1):((i+1)*9),]$rho[1])
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$rho_error, type = "b", 
-     col = "darkgreen",                    # Line color
-     pch = 19,                        # Point symbol
-     lwd = 2,                         # Line width
-     xlab = "Number of Individuals (N)", # X-axis label
-     ylab = "Rho Error",              # Y-axis label
-     main = tx, # Title
-     cex.axis = 0.9,                  # Axis text size
-     cex.lab = 1,                     # Label text size
-     cex.main = 1.2)
-grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
-abline(h = 0, col = "black", lty = "dotted", lwd = 2)
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.8, 1.9, 2)
+omega_var = 1
+Tfull = c(2:4)
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+set.seed(37) # set.seed(40) starting from row 856, adjust later for prior rows
 
-#
-i = 0
-# Beta plot
-plot(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error, type = "b", 
-     col = "blue",                    
-     pch = 19,                        
-     lwd = 2,                         
-     xlab = "Number of Individuals (N)", 
-     ylab = "Beta Error",
-     ylim = c(-0.1, 0.5),
-     main = "Beta Error vs. Sample Size (N) for varying rho", 
-     cex.axis = 0.9,                  
-     cex.lab = 1,                   
-     cex.main = 1.2)
-grid(nx = NULL, ny = NULL, col = "gray", lty = "dotted")
-abline(h = 0, col = "black", lty = "dotted", lwd = 2)
-colors = c("lightblue", "grey", "green", "yellow", "orange", "red")
-for (i in 1:length(colors)){
-  points(x = sim_results[(i*9+1):((i+1)*9),]$N, y = sim_results[(i*9+1):((i+1)*9),]$beta_error,
-         type = "b", pch = 19, col = colors[i], lwd = 2)
+
+# Recalc code
+list_of_dataframes <- list()
+
+for (i in 1:nrow(parameters)){
+  N = parameters$N[i]
+  Tfull = parameters$Tfull[i]
+  n_reps = parameters$n_reps[i]
+  rho = parameters$rho[i]
+  beta_free = parameters$beta_free[i]
+  omega_var = parameters$omega_var[i]
+  
+  filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                     "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename))){
+    msg = paste0("Error occured in iteration:", i)
+    print(msg)
+    break
+  }
+  foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename))
+  
+  # Get estimates
+  beta_estimates <- foo$beta
+  omega_estimates <- foo$omega
+  rho_estimates <- foo$rho
+  
+  true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
+  
+  # Get mean error
+  beta_error <- mean(beta_estimates - true_parameters["beta"], na.rm = T)
+  omega_error <- mean(omega_estimates - true_parameters["omega"], na.rm = T) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_error <- mean(rho_estimates - true_parameters["rho"], na.rm = T)
+  
+  # Now, calculate average standard deviation for each estimate
+  beta_sd_avg <- mean(foo$beta_sd, na.rm = T)
+  omega_sd_avg <- mean(foo$omega_sd, na.rm = T) # these are sd's of omega_var
+  rho_sd_avg <- mean(foo$rho_sd, na.rm = T)
+  
+  list_of_dataframes[[i]] = data.frame(beta_error = beta_error, 
+                                 beta_sd_avg = beta_sd_avg,
+                                 omega_error = omega_error,
+                                 omega_sd_avg = omega_sd_avg,
+                                 rho_error = rho_error,
+                                 rho_sd_avg = rho_sd_avg,
+                                 rho = rho,
+                                 N = N,
+                                 n_reps = n_reps,
+                                 beta_free = beta_free,
+                                 omega_var = omega_var,
+                                 Tfull = Tfull,
+                                 beta_estimate_sd = NA,
+                                 omega_estimate_sd = NA,
+                                 rho_estimate_sd = NA)
+  
 }
 
+combined_df <- do.call(rbind, list_of_dataframes)
+
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv")) # previous_error_results <- foo %>% mutate(across(where(is.character), as.numeric))
+error_results = dplyr::bind_rows(previous_error_results, combined_df)
+write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
 
-# Create the ggplot
-ggplot(sim_results_long, aes(x = N, y = error, color = Coefficient, group = Coefficient)) +
-  geom_line(size = 1.2) +
-  geom_point(size = 3) +
-  facet_wrap(~ Coefficient, scales = "free_y") +  # Separate plot for each coefficient
-  theme_minimal(base_size = 14) +
-  theme(
-    strip.text = element_text(size = 14, face = "bold"),
-    panel.grid.major = element_line(color = "gray90"),
-    panel.grid.minor = element_blank()
-  ) +
-  labs(
-    title = "Error of Coefficient Estimates Across N",
-    x = "Number of Individuals (N)",
-    y = "Error",
-    color = "Coefficient") #+
-  # annotate("text", x = max(sim_results$N) * 0.7, y = max(sim_results_long$error) * 0.8, 
-  #          label = paste0("Tfull = ", unique(sim_results$Tfull), 
-  #                         "\nrho = ", unique(sim_results$rho), 
-  #                         "\nn_reps = ", unique(sim_results$n_reps)),
-  #          hjust = 0, color = "black", size = 5, alpha = 0.7)
-foo <- sim_results[,1:5] %>% group_by(rho)
-ggplot(sim_results_long %>% filter(Coefficient == "beta_error"), aes(x = N, y = error, color = rho)) +
-  geom_line(size = 1.2)
 
-# Print the plot
-print(error_plot)
 
-# Create the ggplot
-#ggplot(sim_results, aes(x = N, y = beta_error)) + geom_line(size = 1)
+
+
+
+# old stuff ---------------------------------------------------------------
+# Reshape to long format
+CI_results_long <- CI_results %>%
+  pivot_longer(
+    cols = c(beta_pc, omega_pc, rho_pc), # Specify columns to reshape
+    names_to = "parameter",              # New column for parameter names
+    values_to = "rate"                   # New column for percentage rates
+  )
+
+# Save calculated dataframe for later
+#write.csv(CI_results, file = "InitialCIresults.csv", row.names = F)
+CI_results = read.csv(file = "~/GitHub/MasterThesis/InitialCIresults.csv")
+
+# Plot using ggplot2
 ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate * 100 for %
   geom_line(size = 1) + geom_point(size = 2) + # line plot with points
   geom_hline(yintercept = 95, linetype = "dotted", color = "black", size = 0.8) + 
@@ -698,11 +733,7 @@ ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate *
            hjust = 0, vjust = 0, size = 10, color = "gray50", fontface = "italic"
   )
 
-
-
-
-
-# Obtain Variance resembling True Variance (close enough for large N)------
+# Obtain Variance resembling True Variance (close enough for large N)
 # Step 1 (rho -0.9 to -0.1)
 rho = seq(from = -0.9, to = -0.1, by = 0.1)
 Tfull = 5
@@ -806,7 +837,7 @@ sd_dataframe
 # write.csv(sd_dataframe, file = "TrueVarianceDataframe.csv", row.names = F)
 # setwd(dir = old_path)
 
-# Obtain Confidence Interval stats ----------------------------------------
+# Obtain Confidence Interval stats 
 get_CI_results <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var, alpha = 0.05, 
                            return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
   
@@ -832,7 +863,7 @@ get_CI_results <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_va
     cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, "\n"))
     #cat(sprintf("Elapsed time: %.2f minutes", elapsed_minutes, "; Parameters: ", parameterMappedTo, "\n"))
   }
-                          
+  
   # Overview of sim_replications:
   # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
   # - Columns = n_reps
@@ -1066,7 +1097,7 @@ write.csv(CI_results, file = "CIresultDataFrame.csv", row.names = F)
 setwd(dir = old_path)
 
 
-# Graphics for confidence intervals ---------------------------------------
+# Graphics for confidence intervals
 library(tidyr)
 library(ggplot2)
 
@@ -1075,47 +1106,4 @@ CI_results_beta = CI_results %>% dplyr::filter(Param == "beta")
 
 
 
-
-
-
-
-
-
-
-
-
-
-# old stuff ---------------------------------------------------------------
-# Reshape to long format
-CI_results_long <- CI_results %>%
-  pivot_longer(
-    cols = c(beta_pc, omega_pc, rho_pc), # Specify columns to reshape
-    names_to = "parameter",              # New column for parameter names
-    values_to = "rate"                   # New column for percentage rates
-  )
-
-# Save calculated dataframe for later
-#write.csv(CI_results, file = "InitialCIresults.csv", row.names = F)
-CI_results = read.csv(file = "~/GitHub/MasterThesis/InitialCIresults.csv")
-
-# Plot using ggplot2
-ggplot(CI_results_long, aes(x = N, y = rate*100, color = parameter)) +  # rate * 100 for %
-  geom_line(size = 1) + geom_point(size = 2) + # line plot with points
-  geom_hline(yintercept = 95, linetype = "dotted", color = "black", size = 0.8) + 
-  labs(title = "Percentage of Estimates within 95%-Confidence Interval",
-       x = "Number of Individuals (N)",
-       y = "Percentage within CI (%)",
-       color = "Parameter") +
-  scale_color_manual(values = c("beta_pc" = "blue", "omega_pc" = "red", "rho_pc" = "green")) +
-  theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5), legend.position = "top") + 
-  annotate("text",
-           x = max(CI_results$N) * 0.7, y = 0.3,  # Adjust position
-           label = paste0(
-             "rho: ", CI_results$rho[1], "\n",
-             "Tfull: ", CI_results$Tfull[1], "\n",
-             "n_reps: ", CI_results$n_reps[1]
-           ),
-           hjust = 0, vjust = 0, size = 10, color = "gray50", fontface = "italic"
-  )
 
