@@ -693,6 +693,12 @@ previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/R
 error_results = dplyr::bind_rows(previous_error_results, combined_df)
 write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
+## Add in results from prof pc ---------------------------------------------
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv")) # previous_error_results <- foo %>% mutate(across(where(is.character), as.numeric))
+prof_pc_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_to_add_4.csv"))
+error_results = dplyr::bind_rows(previous_error_results, prof_pc_results)
+write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
 
 
