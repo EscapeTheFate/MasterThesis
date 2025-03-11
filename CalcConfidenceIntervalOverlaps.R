@@ -3,7 +3,8 @@ library(tidyverse)
 library(dplyr)
 
 error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
-results = error_results %>% select(names(error_results)[7:ncol(error_results)])
+vars_of_importance = c("rho", "N", "n_reps", "beta_free", "omega_var", "Tfull")
+results = error_results %>% select(all_of(vars_of_importance))
 #results = cbind(results, conv_1_2 = NA, conv_3 = NA, conv_4_5 = NA, crash = NA)
 
 failed_rows = c(NULL)
@@ -17,6 +18,8 @@ for(i in 1:nrow(results)){
   beta_free = results$beta_free[i]
   omega_var = results$omega_var[i]
   
+  true_parameters = c(beta = beta_free, omega = omega_var, rho = rho)
+  
   filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
                      "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
   
@@ -28,6 +31,25 @@ for(i in 1:nrow(results)){
     msg = paste0("Failed row: ", i, ", Not found: ", filename)
     print(msg)
     
+    results_table <- data.frame(
+      Param = c("beta", "omega", "rho"),
+      n_reps = n_reps,
+      Success_Count = c(rep.int(NA, 3)),
+      Success_rate = c(rep.int(NA, 3)),
+      CI_Lower = NA,
+      True_param = true_parameters,
+      CI_Upper = NA,
+      alpha = NA,
+      N = N,
+      Tfull = Tfull,
+      rho = rho,
+      beta = beta_free,
+      omega_var = omega_var,
+      row.names = NULL
+    )
+    
+    list_of_dataframes[[i]] <- results_table
+    
     if(length(failed_rows) == 0){
       failed_rows[1] = i
     } else {
@@ -37,7 +59,7 @@ for(i in 1:nrow(results)){
     next
   }
   
-  true_parameters = c(beta = beta_free, omega = omega_var, rho = rho)
+  
   
   beta_estimates <- foo$beta
   omega_estimates <- foo$omega
@@ -51,21 +73,41 @@ for(i in 1:nrow(results)){
   # omega_to_filter <- omega_var
   # Tfull_to_filter <- Tfull
   
-  truevar_file <- paste0("ErrAvgSD_N=", 10000, "_Tfull=", Tfull, "_nreps=", 1, 
+  N_to_load = 20000
+  truevar_file <- paste0("ErrAvgSD_N=", N_to_load, "_Tfull=", Tfull, "_nreps=", 1, 
                          "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
   
   # Loading true variance dataframe that contains all necessary info
-  if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection")) & 
-     file.exists(paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file))){
-    true_var = read.csv(file = paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file))
-    N_to_load = 10000
-    true_var = true_var %>% select(beta_sd, omega_sd, rho_sd)
-    true_var = true_var^2 # because info is SD so far
-    names(true_var) = c("beta_true_var", "omega_true_var", "rho_true_var")
+  if( file.exists(paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file)) ){
+    true_var_large_N = read.csv(file = paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file))
+    true_var_large_N = true_var_large_N %>% select(beta_sd, omega_sd, rho_sd) # <----------------------------------------------------------------------------------
+    true_var_large_N = true_var_large_N^2 # because info is SD so far
+    names(true_var_large_N) = c("beta_true_var", "omega_true_var", "rho_true_var")
   } else {
     msg = paste0("Error: TrueVariance DF file path inaccurate and/or file not found") 
     print(msg)
     cat("\n")
+    
+    results_table <- data.frame(
+      Param = c("beta", "omega", "rho"),
+      n_reps = n_reps,
+      Success_Count = c(rep.int(NA, 3)),
+      Success_rate = c(rep.int(NA, 3)),
+      CI_Lower = NA,
+      True_param = true_parameters,
+      CI_Upper = NA,
+      alpha = NA,
+      N = N,
+      Tfull = Tfull,
+      rho = rho,
+      beta = beta_free,
+      omega_var = omega_var,
+      row.names = NULL
+    )
+    
+    list_of_dataframes[[i]] <- results_table
+    
+    next
   }
   
   
@@ -79,7 +121,7 @@ for(i in 1:nrow(results)){
     return((N_old*unadjusted_true_var)/N_new)
   }
   
-  adjusted_true_var <- adjust_var_to_N(true_var, N_new = N, N_old = N_to_load)
+  adjusted_true_var_large_N <- adjust_var_to_N(true_var_large_N, N_new = N, N_old = N_to_load)
   alpha = 0.05
   
   if(alpha > 0 & alpha < 1){
@@ -88,10 +130,10 @@ for(i in 1:nrow(results)){
     print("Error: Alpha value invalid")
   }
   
-  ci_lower <- true_parameters - z_value * sqrt(adjusted_true_var)
+  ci_lower <- true_parameters - z_value * sqrt(adjusted_true_var_large_N)
   ci_lower <- unlist(ci_lower) # beta_true_var omega_true_var rho_true_var
   
-  ci_upper <- true_parameters + z_value * sqrt(adjusted_true_var)
+  ci_upper <- true_parameters + z_value * sqrt(adjusted_true_var_large_N)
   ci_upper <- unlist(ci_upper)
   
   # Check cuccess or failure for each parameter
