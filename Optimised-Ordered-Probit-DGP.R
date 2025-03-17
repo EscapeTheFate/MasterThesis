@@ -475,6 +475,126 @@ omega_var = 1
 Tfull = c(2:4)
 set.seed(41) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.1, 1.2, 1.3)
+omega_var = 0.25^2
+Tfull = c(2:4)
+set.seed(45)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.4, 1.5, 1.6)
+omega_var = 0.25^2
+Tfull = c(2:4)
+set.seed(47) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.1, 2.2)
+omega_var = 0.25^2
+Tfull = c(2:4)
+set.seed(49) # set.seed(50) starting from row 589 (first entry of parameters with N = 1000), adjust entries later 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.3, 2.4, 2.5)
+omega_var = 0.25^2
+Tfull = c(2:4)
+set.seed(51)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # N = 20, 30, 40 missing due to instability 
+n_reps = c(500)
+beta_free = c(0, 0.1, 0.2)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(52)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # N = 20, 30, 40 missing due to instability 
+n_reps = c(500)
+beta_free = c(0.3, 0.4)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(53)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # N = 20, 30, 40 missing due to instability 
+n_reps = c(500)
+beta_free = c(0.5, 0.6, 0.7)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(54) # set.seed(56) starting from row 217, adjust later
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # N = 20, 30, 40 missing due to instability 
+n_reps = c(500)
+beta_free = c(1.7)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(58) # set.seed(59) starting from row 123, adjust later
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # N = 20, 30, 40 missing due to instability 
+n_reps = c(500)
+beta_free = c(2, 2.1, 2.2)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(60) # set.seed(62) starting from row 182 (=ind+1), adjust later
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(3, 3.5)
+omega_var = 1
+Tfull = c(2:4)
+set.seed(61)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # 20:40 missing, adjust later
+n_reps = c(500)
+beta_free = c(2.6, 2.7)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(70)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(500)
+beta_free = c(2.6, 2.7)
+omega_var = c(1, 0.25^2)
+Tfull = c(2:4)
+set.seed(73)
+
+# rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+# N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+# n_reps = c(2500)
+# beta_free = c(1)
+# omega_var = c(1)
+# Tfull = c(2:4)
+# set.seed(77) # set.seed(81) starting from row 281 (=ind+1), adjust later
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(1)
+Tfull = c(2:4)
+set.seed(84) # recalced
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(82)
+
 ## On Work PC --------------------------------------------------------------
 rho = seq(from = -0.9, to = 0.9, by = 0.1)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
@@ -556,6 +676,58 @@ omega_var = 1
 Tfull = c(2:4) # c(2:5)
 set.seed(42) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(0, 0.1, 0.2, 0.3, 0.4)
+omega_var = 0.25^2
+Tfull = c(2:4) # c(2:5)
+set.seed(43) # set.seed(46) starting from row 234
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(0.8, 0.9, 1.1)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(55) 
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.8, 1.9)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(59) # set.seed(61) starting from row 89 (=ind+1), adjust later
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+(ind = which(parameters$N == 70 & parameters$Tfull == 2 & parameters$beta == 1.8 & parameters$rho == 0))
+parameters = parameters[(ind+1):nrow(parameters),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.6, 2.7, 2.8)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(69) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.8, 2.9)
+omega_var = c(1, 0.25^2)
+Tfull = c(2:4)
+set.seed(74) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(1000) # adjust later 
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(79)
+
 ## On Prof PC --------------------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
@@ -581,6 +753,72 @@ omega_var = 1
 Tfull = c(2:4) 
 set.seed(22)
 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(2.1, 2.2, 2.3)
+omega_var = 1
+Tfull = c(2:4) # c(2:5)
+set.seed(39) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(0.5, 0.6, 0.7, 0.8, 0.9)
+omega_var = 0.25^2
+Tfull = c(2:4) # c(2:5)
+set.seed(44) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(1.7, 1.8, 1.9, 2)
+omega_var = 0.25^2
+Tfull = c(2:4) # c(2:5)
+set.seed(48) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # 20:60 missing due to crashes, adjust later
+n_reps = c(500)
+beta_free = c(1.2, 1.3, 1.4, 1.5, 1.6)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(57) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # 20:40 missing due to crashes, adjust later
+n_reps = c(500)
+beta_free = c(2.3, 2.4, 2.5)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(63) # <---- adjusted seed due to error
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # 20:40 missing due to crashes, adjust later
+n_reps = c(500)
+beta_free = c(2.8, 2.9, 3)
+omega_var = 4^2
+Tfull = c(2:4)
+set.seed(72)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) # 20:40 missing due to crashes, adjust later
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(0.25^2)
+Tfull = c(2:4)
+set.seed(78)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) # 20:300 missing due to calcs on other PC, adjust later
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(83)
+
 # True Variance calcs -----------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20000) 
@@ -590,6 +828,42 @@ omega_var = 1
 Tfull = c(2:4) 
 set.seed(31) # set.seed(35) starting from row 159
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000) 
+n_reps = c(1)
+beta_free = c(seq(from = 0, to = 1, by = 0.1))
+omega_var = c(0.25^2, 4^2)
+Tfull = c(2:4) 
+set.seed(64) # set.seed(67) starting from row 328 (=ind+1), no adjustment needed
+
+(ind = which(parameters$rho == 0.3 & parameters$Tfull == 4 & parameters$beta_free == 0.2 & parameters$omega_var == 0.0625))
+parameters = parameters[(ind+1):nrow(parameters),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 1, to = 2, by = 0.1))
+omega_var = c(0.25^2, 4^2)
+Tfull = c(2:4)
+set.seed(65) # set.seed(66) starting from row 222 (=ind+1), no adjustment needed
+ind = which(parameters$Tfull == 3 & parameters$rho == 0 & parameters$beta == 1.9 & parameters$omega == 0.0625)
+parameters = parameters[(ind+1):nrow(parameters),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 2.1, to = 2.5, by = 0.1))
+omega_var = c(0.25^2, 4^2)
+Tfull = c(2:4)
+set.seed(68) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 2.6, to = 3, by = 0.1))
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(80) # there is a note on Home PC with seed 76, but 80 was used here according to history
 
 # Fit grid and obtain results ---------------------------------------------
 
