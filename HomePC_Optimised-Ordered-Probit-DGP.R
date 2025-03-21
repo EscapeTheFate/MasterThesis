@@ -992,19 +992,19 @@ set.seed(167) # set.seed(169) starting from row 6, set.seed(177) starting from r
 # set.seed(181) starting from row 14, set.seed(182) starting from row 21
 parameters = parameters[-c(1:20),]
 
-count_fits <- function(log_text) {
-  # Count occurrences of the target phrase
-  fit_count <- gregexpr("Fitting of Rprobit Object", log_text)[[1]]
-  
-  # If no matches are found, return 0
-  if (fit_count[1] == -1) {
-    return(0)
-  }
-  
-  return(length(fit_count))
-}
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60) 
+n_reps = c(500)
+beta_free = c(1.2, 1.3, 1.4, 1.5, 1.6) # so, some of these values were already present/calculated prior,
+omega_var = c(4^2)
+Tfull = c(2:4) 
+set.seed(183) # set.seed(185) starting from row 22, set.seed(187) starting from row 33
+# set.seed(188) starting from row 35, set.seed(190) starting from row 70
+# set.seed(191) starting from row 84, set.seed(192) starting from row 98
+# set.seed(193) starting from row 216, set.seed(194) starting from row 238
+which(parameters$N == 40 & parameters$Tfull == 2 & parameters$beta == 1.5 & parameters$rho == 0.6 & parameters$omega_var == 16)
+parameters = parameters[-c(1:237),]
 
-count_fits("")
 #
 # True Variance calcs -----------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
