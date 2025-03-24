@@ -1005,6 +1005,14 @@ set.seed(183) # set.seed(185) starting from row 22, set.seed(187) starting from 
 which(parameters$N == 40 & parameters$Tfull == 2 & parameters$beta == 1.5 & parameters$rho == 0.6 & parameters$omega_var == 16)
 parameters = parameters[-c(1:237),]
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(500)
+beta_free = c(1.4, 1.5) 
+omega_var = c(1)
+Tfull = c(2:4) 
+set.seed(195)
+
 #
 # True Variance calcs -----------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
