@@ -1035,8 +1035,8 @@ n_reps = c(1)
 beta_free = c(2, 2.1, 2.2, 2.3) 
 omega_var = c(1)
 Tfull = c(2:4) 
-set.seed(211) # set.seed(212) starting from row 26
-(ind = which(parameters$Tfull == 4 & parameters$beta_free == 2.3 & parameters$rho == 0 & parameters$omega_var == 1))
+set.seed(211) # set.seed(212) starting from row 83
+(ind = which(parameters$Tfull == 4 & parameters$beta_free == 2.3 & parameters$rho == 0.3 & parameters$omega_var == 1))
 parameters = parameters[-c(1:ind),]
 
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
