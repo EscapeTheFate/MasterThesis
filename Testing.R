@@ -199,3 +199,55 @@ p <- ggplot(combined_df, aes(x = N, color = Param)) +
 
 print(p)
 
+
+# -------------------------------------------------------------------------
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+
+df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results.csv"))
+df <- df %>% filter(rho == 0,
+         Tfull == 2,
+         n_reps == 500,
+         omega_var == 1)
+df <- df %>%
+  mutate(beta_lower = beta_error - 1.96 * beta_estimate_sd,
+         beta_upper = beta_error + 1.96 * beta_estimate_sd,
+         omega_lower = omega_error - 1.96 * omega_estimate_sd,
+         omega_upper = omega_error + 1.96 * omega_estimate_sd,
+         rho_lower = rho_error - 1.96 * rho_estimate_sd,
+         rho_upper = rho_error + 1.96 * rho_estimate_sd)
+foo = df
+foo <- foo %>% filter(beta_error < 10, beta_error > -10, omega_error < 10,
+                      omega_error > -10, rho_error < 10, rho_error > -10)
+min = min( c(foo$beta_error, foo$omega_error, foo$rho_error), na.rm = TRUE )
+max = max( c(foo$beta_error, foo$omega_error, foo$rho_error), na.rm = TRUE )
+p <- ggplot(df, aes(x = N)) + list(
+  geom_ribbon(aes(ymin = beta_lower, ymax = beta_upper, fill = "Beta CI"), alpha = 0.3),
+  geom_ribbon(aes(ymin = omega_lower, ymax = omega_upper, fill = "Omega CI"), alpha = 0.3),
+  geom_ribbon(aes(ymin = rho_lower, ymax = rho_upper, fill = "Rho CI"), alpha = 0.3),
+  geom_line(aes(y = beta_error, color = "Beta Error")),
+  geom_line(aes(y = omega_error, color = "Omega Error")),
+  geom_line(aes(y = rho_error, color = "Rho Error")),
+  geom_point(aes(y = beta_error, color = "Beta Error"), size = 1),
+  geom_point(aes(y = omega_error, color = "Omega Error"), size = 1),
+  geom_point(aes(y = rho_error, color = "Rho Error"), size = 1)) +
+  labs(title = "title_text",
+       x = "Sample Size (N)",
+       y = "Value",,
+       fill = "Confidence Interval") +
+  coord_cartesian(ylim = c(min, max)) +
+  theme_minimal() +
+  theme(legend.position = c(0.85, 0.85)) +
+  scale_fill_manual(values = c("Beta CI" = "#E69F00",   # Orange
+                               "Omega CI" = "#009900",  # Purple
+                               "Rho CI" = "#0066ff"))   # Teal
+print(p)  
+  
+  
+  
+  
+  
+  
+  
+  
