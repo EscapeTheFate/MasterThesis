@@ -728,6 +728,22 @@ omega_var = c(4^2)
 Tfull = c(2:4)
 set.seed(79)
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(3)
+omega_var = c(1)
+Tfull = c(2:4)
+set.seed(189)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200)
+n_reps = c(500)
+beta_free = c(3)
+omega_var = c(0.25^2)
+Tfull = c(2:4)
+set.seed(196)
+
 ## On Prof PC --------------------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
@@ -819,6 +835,274 @@ omega_var = c(4^2)
 Tfull = c(2:4)
 set.seed(83)
 
+## Omega Variance = 16 low sample calcs ------------------------------------
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40)
+n_reps = c(500)
+beta_free = c(0)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(85) # set.seed(87) starting from row 7, set.seed(88) starting from row 35
+parameters = parameters[-c(1:35),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40)
+n_reps = c(500)
+beta_free = c(0.1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(89) # set.seed(90) starting from row 7, set.seed(91) starting from row 14
+parameters = parameters[-c(1:13),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40)
+n_reps = c(500)
+beta_free = c(0.2)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(92) # set.seed(94) starting from row 6, set.seed(95) starting from row 28
+parameters = parameters[-c(1:27),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.3)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(100) # set.seed(102) starting from row 14, set.seed(104) starting from row 27
+parameters = parameters[-c(1:27),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.4)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(106) # set.seed(108) starting from row 6
+parameters = parameters[-c(1:5),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.5)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(112) # set.seed(114) starting from row 7, set.seed(116) starting from row 21
+parameters = parameters[-c(1:20),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.6)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(121) # set.seed(122) starting from row 7, set.seed(124) starting from row 11
+parameters = parameters[-c(1:10),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.7)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(126) # set.seed(127) starting from row 6, set.seed(128) starting from row 7
+parameters = parameters[-c(1:6),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.8)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(132) # set.seed(135) starting from row 7, set.seed(139) starting from row 14
+parameters = parameters[-c(1:13),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(0.9)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(146) # set.seed(148) starting from row 7
+parameters = parameters[-c(1:6),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(151) 
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(1.1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(152) # set.seed(153) starting from row 7
+parameters = parameters[-c(1:6),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(1.2)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(159)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30)
+n_reps = c(500)
+beta_free = c(1.3)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(162) # set.seed(164) starting from row 13, set.seed(168) starting from row 28
+parameters = parameters[-c(1:27),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(40)
+n_reps = c(2500)
+beta_free = c(1)
+omega_var = c(4^2)
+Tfull = c(2:4)
+set.seed(168) # set.seed(164) starting from row 13, set.seed(168) starting from row 28
+parameters = parameters[-c(1:27),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40)
+n_reps = c(500)
+beta_free = c(1)
+omega_var = c(0.25^2)
+Tfull = c(2:4)
+set.seed(168) # set.seed(164) starting from row 13, set.seed(168) starting from row 28
+parameters = parameters[-c(1:27),]
+
+# The last remaining parameter sets missing from the estimate collection
+rho = c(0.9, 0.9, 0.9, 0.6, 0.9, 0.6)
+N = c(30, 20, 40, 40, 40, 20)
+n_reps = c(500)
+beta_free = c(0, 0.5, 0.6, 0.7, 1.8, 2.1)
+omega_var = c(4^2)
+Tfull = c(3, 2, 2, 2, 2, 4)
+set.seed(202) # set.seed(203) starting from row 6
+(parameters = data.frame(rho, n_reps, beta_free, omega_var, Tfull, N)) # <- not create_grid here
+parameters = parameters[-c(1:5),]
+
+rho = c(0.6, 0.9, 0.6, 0.9)
+N = c(20, 30, 20, 20)
+n_reps = c(500)
+beta_free = c(2.9, 2.9, 3.0, 3.0)
+omega_var = c(4^2)
+Tfull = c(2, 2, 3, 4)
+set.seed(205)
+(parameters = data.frame(rho, n_reps, beta_free, omega_var, Tfull, N)) # <- not create_grid here
+
+rho = c(0.9, -0.9, 0.9, -0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(0, 0.4, 0.4, 0.6)
+omega_var = c(0.25^2, 4^2, 4^2, 4^2)
+Tfull = c(4, 3, 3, 4)
+set.seed(207)
+(parameters = data.frame(rho, n_reps, beta_free, omega_var, Tfull, N)) # <- not create_grid here
+
+rho = c(0.9, -0.3, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(1.1, 1.2, 1.3)
+omega_var = c(1)
+Tfull = c(4, 3, 4)
+set.seed(208)
+(parameters = data.frame(rho, n_reps, beta_free, omega_var, Tfull, N)) # <- not create_grid here
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(1.6, 1.7, 1.8, 1.9)
+omega_var = c(1)
+Tfull = c(2:4)
+set.seed(209)
+
+rho = c(-0.9, 0.6, 0.3, 0)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(1.7, 1.9, 2.7, 2.8)
+omega_var = c(1,4^2, 1, 0.25^2)
+Tfull = c(3, 3, 3, 3)
+set.seed(214)
+(parameters = data.frame(rho, n_reps, beta_free, omega_var, Tfull, N)) # <- not create_grid here
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70) 
+n_reps = c(500)
+beta_free = c(4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(217) # set.seed(219) starting from row 4, set.seed(220) starting from row 39
+# set.seed(221) starting from row 45, set.seed(222) starting from row 49
+# set.seed(223) starting from row 89
+which(parameters$N == 30 & parameters$Tfull == 3 & parameters$rho == 0 & parameters$omega_var == 0.0625)
+parameters = parameters[-c(1:88),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(100, 125, 150, 200, 300, 500) 
+n_reps = c(2500)
+beta_free = c(0)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(224) # set.seed(230) starting from row 288, set.seed(241) starting from row 351
+# set.seed(242) starting from row 364
+(ind = which(parameters$N == 500 & parameters$Tfull == 4 & parameters$rho == 0.6 & parameters$omega_var == 0.0625))
+parameters = parameters[-c(1:363),]
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(1000, 500, 300, 200, 150, 125, 100, 90, 80, 70, 60, 50) 
+n_reps = c(500)
+beta_free = c(3.2, 3.4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(251) # continue at first entry of 500
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(150, 125, 100) 
+n_reps = c(2500)
+beta_free = c(4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(263)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(2500)
+beta_free = c(4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(4)
+set.seed(267)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40) 
+n_reps = c(2500)
+beta_free = c(0)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(271) # set.seed(274) starting from row 15, set.seed(279) starting from row 20, set.seed(280) starting from row 21
+# set.seed(288) starting from row 62, set.seed(295) starting from row 75
+(ind = which(parameters$N == 30 & parameters$Tfull == 2 & parameters$rho == 0 & parameters$omega_var == 1))
+parameters = parameters[-c(1:74),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20) 
+n_reps = c(2500)
+beta_free = c(3)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:3)
+set.seed(309) # set.seed(312) starting from row 14, set.seed(315) starting from row 21, set.seed(317) starting from row 22, N=20, Tfull=3, beta=3, rho=0.3, omega=0.0625
+(ind = which(parameters$N == 20 & parameters$Tfull == 2 & parameters$rho == 0.6 & parameters$omega_var == 16))
+parameters = parameters[-c(1:21),]
+
+#
 # True Variance calcs -----------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20000) 
@@ -970,14 +1254,503 @@ write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Co
 ## Add in results from prof pc ---------------------------------------------
 file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
 previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv")) # previous_error_results <- foo %>% mutate(across(where(is.character), as.numeric))
-prof_pc_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_to_add_4.csv"))
+prof_pc_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_large_Nreps_omega_var16.csv"))
 error_results = dplyr::bind_rows(previous_error_results, prof_pc_results)
 write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
 
+# --------------------------------------------------------------------------------
+# Obtain Results from Source files (build entire results.csv from scratch --------
+library(dplyr)
+library(tidyverse)
+
+# All (relevant) parameter combinations that were estimated prior to this: 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500)
+beta_free = c(seq(from = 0, to = 3, by = 0.1))
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4) 
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+
+# Check which models are still missing/need to be recalced due to NA entry (i.e. true var df with 1 nreps)
+list_of_dataframes <- list()
+vector_of_missings <- c()
+counter = 0
+
+for (i in 1:nrow(parameters)){
+  N = parameters$N[i]
+  Tfull = parameters$Tfull[i]
+  n_reps = parameters$n_reps[i]
+  rho = parameters$rho[i]
+  beta_free = parameters$beta_free[i]
+  omega_var = parameters$omega_var[i]
+  
+  filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                     "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename))){
+    msg = paste0("Error occured in iteration:", i)
+    print(msg)
+    counter = 1
+    list_of_missing[[counter]] = i
+    next
+  }
+  foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename))
+  
+  # Get estimates
+  beta_estimates <- foo$beta
+  omega_estimates <- foo$omega
+  rho_estimates <- foo$rho
+  
+  true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
+  
+  # Get mean error
+  beta_error <- mean(beta_estimates - true_parameters["beta"], na.rm = T)
+  omega_error <- mean(omega_estimates - true_parameters["omega"], na.rm = T) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_error <- mean(rho_estimates - true_parameters["rho"], na.rm = T)
+  
+  # Now, calculate average standard deviation for each estimate
+  beta_sd_avg <- mean(foo$beta_sd, na.rm = T)
+  omega_sd_avg <- mean(foo$omega_sd, na.rm = T) # these are sd's of omega_var
+  rho_sd_avg <- mean(foo$rho_sd, na.rm = T)
+  
+  list_of_dataframes[[i]] = data.frame(beta_error = beta_error, 
+                                       beta_sd_avg = beta_sd_avg,
+                                       omega_error = omega_error,
+                                       omega_sd_avg = omega_sd_avg,
+                                       rho_error = rho_error,
+                                       rho_sd_avg = rho_sd_avg,
+                                       rho = rho,
+                                       N = N,
+                                       n_reps = n_reps,
+                                       beta_free = beta_free,
+                                       omega_var = omega_var,
+                                       Tfull = Tfull,
+                                       beta_estimate_sd = NA,
+                                       omega_estimate_sd = NA,
+                                       rho_estimate_sd = NA)
+  
+}
+combined_df <- do.call(rbind, list_of_dataframes)
+
+# Save calculated dataframe
+write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_500reps_Results.csv"), row.names = F)
+
+
+# Normal models with 500 reps
+for (i in 1:nrow(parameters)){
+  N = parameters$N[i]
+  Tfull = parameters$Tfull[i]
+  n_reps = parameters$n_reps[i]
+  rho = parameters$rho[i]
+  beta_free = parameters$beta_free[i]
+  omega_var = parameters$omega_var[i]
+  
+  filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                     "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename))){
+    msg = paste0("Error occured in iteration:", i)
+    print(msg)
+    counter = counter + 1
+    vector_of_missings[counter] = i
+    next
+  }
+}
+vector_of_missings = as.vector(unlist(vector_of_missings))
+parameters = parameters[vector_of_missings,]
+View(parameters %>% arrange(beta_free))
+
+# True variance NA filtering (searching which results need to be recalced due
+# to them being calc'ed for one model only, but with large sample which may 
+# be crashed/not converged at the time/had NA result for whatever reason)
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 0, to = 3, by = 0.1))
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4) 
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+
+# True variance models with 1 rep
+list_of_dataframes <- list()
+vector_of_missings <- c()
+vector_of_NA_rows <- c()
+counter = counter_NA = 0
+
+for (i in 1:nrow(parameters)){
+  N = parameters$N[i]
+  Tfull = parameters$Tfull[i]
+  n_reps = parameters$n_reps[i]
+  rho = parameters$rho[i]
+  beta_free = parameters$beta_free[i]
+  omega_var = parameters$omega_var[i]
+  
+  filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                     "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/True_Variance_Estimate_Collection/", filename))){
+    msg = paste0("Error occured in iteration:", i)
+    print(msg)
+    counter = counter + 1
+    vector_of_missings[counter] = i
+    next
+  }
+  
+  df <- read.csv(paste0(getwd(), "/GitHub/MasterThesis/True_Variance_Estimate_Collection/", filename))
+  
+  if(nrow(df) == 1 && all(is.na(df))) {
+    msg = paste0("NA occured in iteration:", i)
+    print(msg)
+    counter_NA = counter_NA + 1
+    vector_of_NA_rows[counter_NA] = i
+    next
+  }
+}
+vector_of_missings = as.vector(unlist(vector_of_missings))
+vector_of_NA_rows = as.vector(unlist(vector_of_NA_rows))
+parameters = parameters[vector_of_missings,]
+View(parameters %>% arrange(beta_free))
+
+file.exists(paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"))
+previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv")) # previous_error_results <- foo %>% mutate(across(where(is.character), as.numeric))
+error_results = dplyr::bind_rows(previous_error_results, combined_df)
+write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
+
+# Testing for the appropriate replication sample size for beta = 1 value:
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
+n_reps = c(500, 2500)
+beta_free = c(0, 1, 2, 3, 4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4) 
+nrep_samplesizes = c(100, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000)
+(parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
 
 
+
+# Recalc code where the 2500 and 500 (independent) model results are first combined,
+# then the first nrep_samplesizes number's are taken out of the 3000 (i.e. first 
+# 500 from 3000, and so on...), and the results are calculated on that basis
+list_of_dataframes <- list()
+vector_of_missings <- c()
+counter = 0
+
+for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
+  flag_1 = flag_2 = 0
+  N = parameters$N[i]
+  Tfull = parameters$Tfull[i]
+  n_reps = parameters$n_reps[i]
+  rho = parameters$rho[i]
+  beta_free = parameters$beta_free[i]
+  omega_var = parameters$omega_var[i]
+  nreps_samplesize_number = parameters$nrep_samplesizes[i]
+  
+  filename1 <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                     "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename1))){
+    msg = paste0("Error occured in iteration:", i, " (filename1)")
+    print(msg)
+    counter = counter + 1
+    vector_of_missings[counter] = i
+    flag_1 = 1
+  }
+  
+  N = parameters$N[i+1]
+  Tfull = parameters$Tfull[i+1]
+  n_reps = parameters$n_reps[i+1]
+  rho = parameters$rho[i+1]
+  beta_free = parameters$beta_free[i+1]
+  omega_var = parameters$omega_var[i+1]
+  
+  filename2 <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+                      "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename2))){
+    msg = paste0("Error occured in iteration:", i, " (filename2)")
+    print(msg)
+    counter = counter + 1
+    vector_of_missings[counter] = i
+    flag_2 = 1
+  }
+  if(parameters$nrep_samplesizes[i] != parameters$nrep_samplesizes[i+1]){
+    msg = c("2 different nreps samplesize numbers after each other in 'parameters'")
+    print(msg)
+    break
+  }
+  
+  if(flag_1 != 1 & flag_2 != 1){
+    foo1 = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename1)) # 500 nreps one
+    foo2 = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename2)) # 2500 nreps one
+    foo = rbind(foo1, foo2) # combine
+    foo = foo[1:nreps_samplesize_number,]# take only the first nreps_samplesize number of rows
+    foo = na.omit(foo)
+  } else {
+      if(flag_1 == 1){
+        foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename2))
+        if(nreps_samplesize_number <= dim(foo)[1]){
+          foo = foo[1:nreps_samplesize_number,]
+        }
+      } else {
+        foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename1)) # 500 nreps one
+        if(nreps_samplesize_number <= dim(foo)[1]){
+          foo = foo[1:nreps_samplesize_number,]
+        }
+      }
+    foo = na.omit(foo)
+  }
+  
+  
+  # Get estimates
+  beta_estimates <- foo$beta
+  omega_estimates <- foo$omega
+  rho_estimates <- foo$rho
+  
+  true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
+  
+  # Get mean error
+  beta_error <- mean(beta_estimates - true_parameters["beta"], na.rm = T)
+  omega_error <- mean(omega_estimates - true_parameters["omega"], na.rm = T) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_error <- mean(rho_estimates - true_parameters["rho"], na.rm = T)
+  
+  # Now, calculate average standard deviation for each estimate
+  beta_sd_avg <- mean(foo$beta_sd, na.rm = T)
+  omega_sd_avg <- mean(foo$omega_sd, na.rm = T) # these are sd's of omega_var
+  rho_sd_avg <- mean(foo$rho_sd, na.rm = T)
+  
+  # Also, calculate standard deviation for standard deviation estimates of 
+  # parameter estimates that will be used as a CI for avg estimate SD plots
+  sd_of_beta_sds <- sd(foo$beta_sd, na.rm = T)
+  sd_of_omega_sds <- sd(foo$omega_sd, na.rm = T) # these are sd's of omega_var
+  sd_of_rho_sds <- sd(foo$rho_sd, na.rm = T)
+  
+  # Calculate SD of the Sample of Estimates (so on beta, omega and rho estimates)
+  # This uses the code in CalcSampleEstimateSD, but directly implemented
+  
+  beta_estimate_sd = sd(beta_estimates, na.rm = T)
+  omega_estimate_sd = sd(omega_estimates, na.rm = T)
+  rho_estimate_sd = sd(rho_estimates, na.rm = T)
+  
+  # Calculate the Confidence Intervals + the success rate of estimates lying
+  # within the interval (same as code in CalcConfidenceIntervalOverlaps, but here)
+  
+  # Calculate the proportion of model estimates that lie within (1-alpha)%-CI
+  
+  # First, load in correct true variance file that was calculated on large N
+  N_to_load = 20000
+  truevar_file <- paste0("ErrAvgSD_N=", N_to_load, "_Tfull=", Tfull, "_nreps=", 1, 
+                         "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+  
+  # Loading true variance dataframe that contains all necessary info
+  if( file.exists(paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file)) ){
+    true_var_large_N = read.csv(file = paste0(getwd(),"/GitHub/MasterThesis/True_Variance_Estimate_Collection/", truevar_file))
+    true_var_large_N = true_var_large_N %>% select(beta_sd, omega_sd, rho_sd) # <----------------------------------------------------------------------------------
+    true_var_large_N = true_var_large_N^2 # because info is SD so far
+    names(true_var_large_N) = c("beta_true_var", "omega_true_var", "rho_true_var")
+  } else {
+    msg = paste0("Error: TrueVariance DF file path inaccurate and/or file not found") 
+    print(msg)
+    cat("\n")
+    next
+    
+    results_table <- data.frame(
+      n_reps = n_reps,
+      N = N,
+      Tfull = Tfull,
+      rho = rho,
+      beta = beta_free,
+      omega_var = omega_var,
+      
+      ci_lower_beta = NA,
+      ci_upper_beta = NA,
+      success_beta = NA,
+      failure_beta = NA,
+      p_beta = NA,
+      bino_ci_norm_lower_beta = NA,
+      bino_ci_exact_lower_beta = NA,
+      bino_ci_wilson_lower_beta = NA,
+      bino_ci_norm_upper_beta = NA,
+      bino_ci_exact_upper_beta = NA,
+      bino_ci_wilson_upper_beta = NA,
+      
+      ci_lower_omega = NA,
+      ci_upper_omega = NA,
+      success_omega = NA,
+      failure_omega = NA,
+      p_omega = NA,
+      bino_ci_norm_lower_omega = NA,
+      bino_ci_exact_lower_omega = NA,
+      bino_ci_wilson_lower_omega = NA,
+      bino_ci_norm_upper_omega = NA,
+      bino_ci_exact_upper_omega = NA,
+      bino_ci_wilson_upper_omega = NA,
+      
+      
+      ci_lower_rho = NA,
+      ci_upper_rho = NA,
+      success_rho = NA,
+      failure_rho = NA,
+      p_rho = NA,
+      bino_ci_norm_lower_rho = NA,
+      bino_ci_exact_lower_rho = NA,
+      bino_ci_wilson_lower_rho = NA,
+      bino_ci_norm_upper_rho = NA,
+      bino_ci_exact_upper_rho = NA,
+      bino_ci_wilson_upper_rho = NA,
+      row.names = NULL
+    )
+    
+    list_of_dataframes[[i]] <- results_table
+    
+    next
+  }
+  
+  
+  # # Extract the correct info out of true var df
+  # true_var = dplyr::filter(true_var, rho == rho_to_filter,
+  #                          beta_coef == beta_to_filter,
+  #                          Tfull == Tfull_to_filter,
+  #                          omega_var == omega_to_filter)
+  
+  adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
+    return((N_old*unadjusted_true_var)/N_new)
+  }
+  
+  adjusted_true_var_large_N <- adjust_var_to_N(true_var_large_N, N_new = N, N_old = N_to_load)
+  alpha = 0.05
+  
+  if(alpha > 0 & alpha < 1){
+    z_value = qnorm(1-alpha/2) # For different CIs
+  } else {
+    print("Error: Alpha value invalid")
+  }
+  
+  ci_lower <- true_parameters - z_value * sqrt(adjusted_true_var_large_N)
+  ci_lower <- unlist(ci_lower) # beta_true_var omega_true_var rho_true_var
+  
+  ci_upper <- true_parameters + z_value * sqrt(adjusted_true_var_large_N)
+  ci_upper <- unlist(ci_upper)
+  
+  # Check cuccess or failure for each parameter
+  success_beta <- sum(beta_estimates >= ci_lower[1] & beta_estimates <= ci_upper[1])
+  failure_beta <- length(beta_estimates) - success_beta
+  
+  success_omega <- sum(omega_estimates >= ci_lower[2] & omega_estimates <= ci_upper[2])
+  failure_omega <- length(omega_estimates) - success_omega
+  
+  success_rho <- sum(rho_estimates >= ci_lower[3] & rho_estimates <= ci_upper[3])
+  failure_rho <- length(rho_estimates) - success_rho
+  
+  # Obtain uncertainty (upper and lower) of CI-overlap result by normal approximation
+  eps = 1e-10
+  p_beta = success_beta/length(beta_estimates)
+  p_omega = success_omega/length(omega_estimates)
+  p_rho = success_rho/length(rho_estimates)
+  
+  binomial_norm_upper_beta = p_beta + z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
+  binomial_norm_upper_omega = p_omega + z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
+  binomial_norm_upper_rho = p_rho + z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
+  
+  binomial_norm_lower_beta = p_beta - z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
+  binomial_norm_lower_omega = p_omega - z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
+  binomial_norm_lower_rho = p_rho - z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
+  
+  # Now, do the same, but to obtain exact ones (by clopper and pearson)
+  binomial_exact_upper_beta = 1 - qbeta(p = alpha/2, shape1 = length(beta_estimates) - success_beta, shape2 = success_beta + 1)
+  binomial_exact_upper_omega = 1 - qbeta(p = alpha/2, shape1 = length(omega_estimates) - success_omega, shape2 = success_omega + 1)
+  binomial_exact_upper_rho = 1 - qbeta(p = alpha/2, shape1 = length(rho_estimates) - success_rho, shape2 = success_rho + 1)
+  
+  binomial_exact_lower_beta = 1 - qbeta(p = 1 - alpha/2, shape1 = length(beta_estimates) - success_beta + 1, shape2 = success_beta)
+  binomial_exact_lower_omega = 1 - qbeta(p = 1 - alpha/2, shape1 = length(omega_estimates) - success_omega + 1, shape2 = success_omega)
+  binomial_exact_lower_rho = 1 - qbeta(p = 1 - alpha/2, shape1 = length(rho_estimates) - success_rho + 1, shape2 = success_rho)
+  
+  # Compute Wilson Score Interval
+  wilson_ci <- function(p, n, z) {
+    denominator <- 1 + (z^2 / n)
+    center <- p + (z^2 / (2 * n))
+    margin <- z * sqrt((p * (1 - p) / n) + (z^2 / (4 * n^2)))
+    
+    lower <- (center - margin) / denominator
+    upper <- (center + margin) / denominator
+    
+    return(c(lower, upper))
+  }
+  
+  # Compute Wilson CI for all estimates
+  wilson_beta <- wilson_ci(p_beta, length(beta_estimates), z_value)
+  wilson_omega <- wilson_ci(p_omega, length(omega_estimates), z_value)
+  wilson_rho <- wilson_ci(p_rho, length(rho_estimates), z_value)
+  
+  
+  list_of_dataframes[[i]] = data.frame(beta_error = beta_error, 
+                                       beta_sd_avg = beta_sd_avg,
+                                       sd_of_beta_sds = sd_of_beta_sds,
+                                       omega_error = omega_error,
+                                       omega_sd_avg = omega_sd_avg,
+                                       sd_of_omega_sds = sd_of_omega_sds,
+                                       rho_error = rho_error,
+                                       rho_sd_avg = rho_sd_avg,
+                                       sd_of_rho_sds = sd_of_rho_sds,
+                                       rho = rho,
+                                       N = N,
+                                       n_reps = nreps_samplesize_number,
+                                       beta_free = beta_free,
+                                       omega_var = omega_var,
+                                       Tfull = Tfull,
+                                       
+                                       beta_estimate_sd = beta_estimate_sd,
+                                       omega_estimate_sd = omega_estimate_sd,
+                                       rho_estimate_sd = rho_estimate_sd,
+                                       
+                                       ci_lower_beta = ci_lower[1],
+                                       ci_upper_beta = ci_upper[1],
+                                       success_beta = success_beta,
+                                       failure_beta = failure_beta,
+                                       p_beta = p_beta,
+                                       bino_ci_norm_lower_beta = binomial_norm_lower_beta,
+                                       bino_ci_exact_lower_beta = binomial_exact_lower_beta,
+                                       bino_ci_wilson_lower_beta = wilson_beta[1],
+                                       bino_ci_norm_upper_beta = binomial_norm_upper_beta,
+                                       bino_ci_exact_upper_beta = binomial_exact_upper_beta,
+                                       bino_ci_wilson_upper_beta = wilson_beta[2],
+                                       
+                                       ci_lower_omega = ci_lower[2],
+                                       ci_upper_omega = ci_upper[2],
+                                       success_omega = success_omega,
+                                       failure_omega = failure_omega,
+                                       p_omega = p_omega,
+                                       bino_ci_norm_lower_omega = binomial_norm_lower_omega,
+                                       bino_ci_exact_lower_omega = binomial_exact_lower_omega,
+                                       bino_ci_wilson_lower_omega = wilson_omega[1],
+                                       bino_ci_norm_upper_omega = binomial_norm_upper_omega,
+                                       bino_ci_exact_upper_omega = binomial_exact_upper_omega,
+                                       bino_ci_wilson_upper_omega = wilson_omega[2],
+                                       
+                                       
+                                       ci_lower_rho = ci_lower[3],
+                                       ci_upper_rho = ci_upper[3],
+                                       success_rho = success_rho,
+                                       failure_rho = failure_rho,
+                                       p_rho = p_rho,
+                                       bino_ci_norm_lower_rho = binomial_norm_lower_rho,
+                                       bino_ci_exact_lower_rho = binomial_exact_lower_rho,
+                                       bino_ci_wilson_lower_rho = wilson_rho[1],
+                                       bino_ci_norm_upper_rho = binomial_norm_upper_rho,
+                                       bino_ci_exact_upper_rho = binomial_exact_upper_rho,
+                                       bino_ci_wilson_upper_rho = wilson_rho[2],
+                                       row.names = NULL)
+  
+}
+combined_df <- do.call(rbind, list_of_dataframes)
+View(combined_df) 
+View(combined_df[seq(from = 1, to = 57, by = 7),]) # compare various sample sizes for N = 20, rho = -0.9, T = 2
+View(combined_df[seq(from = 5230, to = 5286, by = 7),]) # compare various sample sizes for N = 125, rho = -0.9, T = 3, omega = 16
+
+# Save calculated dataframe
+write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results.csv"), row.names = F)
 
 
 
