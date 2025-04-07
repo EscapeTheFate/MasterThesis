@@ -1172,8 +1172,38 @@ n_reps = c(2500)
 beta_free = c(3) 
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
-set.seed(308)
+set.seed(308) # set.seed(311) starting from row 21
+(ind = which(parameters$Tfull == 2 & parameters$N == 30 & parameters$beta_free == 3 & parameters$rho == 0.6 & parameters$omega_var == 16))
+parameters = parameters[-c(1:20),]
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20) 
+n_reps = c(2500)
+beta_free = c(3) 
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(4) 
+set.seed(314) # set.seed(318) starting from row 21
+(ind = which(parameters$Tfull == 4 & parameters$N == 20 & parameters$beta_free == 3 & parameters$rho == 0.6 & parameters$omega_var == 16))
+parameters = parameters[-c(1:20),]
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20) 
+n_reps = c(2500)
+beta_free = c(3) 
+omega_var = c(4^2)
+Tfull = c(3) 
+set.seed(319) # set.seed(323) starting from row 7
+(ind = which(parameters$Tfull == 4 & parameters$N == 20 & parameters$beta_free == 3 & parameters$rho == 0.6 & parameters$omega_var == 16))
+parameters = parameters[-c(1:6),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20) 
+n_reps = c(2500)
+beta_free = c(3) 
+omega_var = c(1)
+Tfull = c(3) 
+set.seed(324) # set.seed(325) starting from row 
 
 #
 # True Variance calcs -----------------------------------------------------

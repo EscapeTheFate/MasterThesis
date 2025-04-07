@@ -1425,7 +1425,7 @@ n_reps = c(500, 2500)
 beta_free = c(0, 1, 2, 3, 4)
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
-nrep_samplesizes = c(100, 200, 300, 400, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000)
+nrep_samplesizes = c(500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000)
 (parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
 
@@ -1438,7 +1438,7 @@ list_of_dataframes <- list()
 vector_of_missings <- c()
 counter = 0
 
-for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
+for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)[17513:42526]){
   flag_1 = flag_2 = 0
   N = parameters$N[i]
   Tfull = parameters$Tfull[i]
@@ -1489,16 +1489,24 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
     foo = foo[1:nreps_samplesize_number,]# take only the first nreps_samplesize number of rows
     foo = na.omit(foo)
   } else {
+      if(flag_1 == 1 & flag_2 == 1){
+        next
+      }
+    
       if(flag_1 == 1){
+        
         foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename2))
         if(nreps_samplesize_number <= dim(foo)[1]){
           foo = foo[1:nreps_samplesize_number,]
         }
+        
       } else {
+        
         foo = read.csv(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename1)) # 500 nreps one
         if(nreps_samplesize_number <= dim(foo)[1]){
           foo = foo[1:nreps_samplesize_number,]
         }
+        
       }
     foo = na.omit(foo)
   }
