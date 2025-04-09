@@ -1203,7 +1203,39 @@ n_reps = c(2500)
 beta_free = c(3) 
 omega_var = c(1)
 Tfull = c(3) 
-set.seed(324) # set.seed(325) starting from row 
+set.seed(324) # set.seed(325) starting from row 6
+parameters = parameters[-c(1:5),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(60, 50)
+n_reps = c(2500)
+beta_free = c(4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(330) # set.seed(331) starting from row 47, set.seed(332) starting at row 65, set.seed(333) starting at row 67, 
+# set.seed(337) starting from row 87, set.seed(338) starting from row 88
+(ind = which(parameters$Tfull == 3 & parameters$N == 50 & parameters$beta_free == 4 & parameters$rho == -0.6 & parameters$omega_var == 0.0625))
+parameters = parameters[-c(1:87),]
+# 
+# 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(40)
+n_reps = c(2500)
+beta_free = c(2)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(339) # set.seed(340) starting from row 21
+(ind = which(parameters$Tfull == 2 & parameters$N == 40 & parameters$beta_free == 2 & parameters$rho == 0.6 & parameters$omega_var == 16))
+parameters = parameters[-c(1:20),]
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(1000, 500, 300, 200, 150, 125, 100) 
+n_reps = c(500)
+beta_free = c(3.9, 3.8) 
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4) 
+set.seed(328) # N=500, Tfull=3, beta=3.9, rho=0, omega=1
 
 #
 # True Variance calcs -----------------------------------------------------
