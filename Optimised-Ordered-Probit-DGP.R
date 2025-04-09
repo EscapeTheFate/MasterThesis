@@ -1102,6 +1102,17 @@ set.seed(309) # set.seed(312) starting from row 14, set.seed(315) starting from 
 (ind = which(parameters$N == 20 & parameters$Tfull == 2 & parameters$rho == 0.6 & parameters$omega_var == 16))
 parameters = parameters[-c(1:21),]
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(70, 60, 50, 40, 30) 
+n_reps = c(500)
+beta_free = c(4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(326) # set.seed(329) starting from row 25, set.seed(334) starting from row 234
+(ind = which(parameters$N == 40 & parameters$Tfull == 4 & parameters$rho == -0.6 & parameters$omega_var == 0.0625))
+parameters = parameters[-c(1:223),]
+
+
 #
 # True Variance calcs -----------------------------------------------------
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
@@ -1425,7 +1436,7 @@ n_reps = c(500, 2500)
 beta_free = c(0, 1, 2, 3, 4)
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
-nrep_samplesizes = c(500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000)
+nrep_samplesizes = c(500, 1000, 1500, 3000)
 (parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
 
@@ -1438,7 +1449,7 @@ list_of_dataframes <- list()
 vector_of_missings <- c()
 counter = 0
 
-for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)[17513:42526]){
+for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
   flag_1 = flag_2 = 0
   N = parameters$N[i]
   Tfull = parameters$Tfull[i]
@@ -1758,7 +1769,7 @@ View(combined_df[seq(from = 1, to = 57, by = 7),]) # compare various sample size
 View(combined_df[seq(from = 5230, to = 5286, by = 7),]) # compare various sample sizes for N = 125, rho = -0.9, T = 3, omega = 16
 
 # Save calculated dataframe
-write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results.csv"), row.names = F)
+write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB.csv"), row.names = F)
 
 
 
