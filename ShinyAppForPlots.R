@@ -12,6 +12,7 @@ ui<- fluidPage(
     sidebarPanel(width = 2,
                  radioButtons("plot_type", "Select Plot Type:",
                               choices = c("Error Metrics" = "error",
+                                          "SMSE Metrics" = "smse",
                                           "Average SD" = "sd",
                                           "CI-Overlap rate" = "ci_succ"),
                               selected = "error"),
@@ -38,6 +39,7 @@ ui<- fluidPage(
                  # Toggle advanced options
                  checkboxInput("advanced", "Enable Advanced nreps Options", FALSE),
                  checkboxInput("advancedView", "Enable Advanced view Options", FALSE),
+                 checkboxInput("advancedSE", "Use empirical SE", FALSE)
     ),
     mainPanel(width = 10,
               plotOutput("error_plot")
@@ -62,7 +64,7 @@ server <- function(input, output, session) {
   
   dataset <- reactive({
     tryCatch({
-      read_csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results.csv"))
+      read_csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v2.csv"))
     }, error = function(e) {
       showNotification(paste("Error reading CSV:", e$message), type = "error")
       NULL
@@ -132,11 +134,13 @@ server <- function(input, output, session) {
     ## Plot title & legend --------
     title_text <- switch(input$plot_type,
                          "error" = "Error Metrics (Bias) vs. Sample Size",
+                         "smse" = "Standardised Mean Squared Error vs. Sample Size",
                          "sd" = "Average SD of Estimate vs. Sample Size",
                          "Success Rate of lying within 95%-CI vs. Sample Size")
     
     legend_title <- switch(input$plot_type,
                            "error" = "Error Metric",
+                           "smse" = "Error Metric",
                            "sd" = "SD Metric",
                            "Estimates within 95%-CI")
     
@@ -179,6 +183,53 @@ server <- function(input, output, session) {
         scale_fill_manual(values = c("Beta CI" = "#E69F00",   
                                      "Omega CI" = "#009900",  
                                      "Rho CI" = "#0066ff"))  
+    }
+    
+    if(input$plot_type == "smse"){
+      p <- ggplot(plot_data, aes(x = N))
+      if(input$advancedSE){
+        p <- p +
+          list(geom_line(aes(y = beta_mse_with_emp_se, color = "Beta Error")),
+               geom_line(aes(y = omega_mse_with_emp_se, color = "Omega Error")),
+               geom_line(aes(y = rho_mse_with_emp_se, color = "Rho Error")),
+               geom_point(aes(y = beta_mse_with_emp_se, color = "Beta Error"), size = 1),
+               geom_point(aes(y = omega_mse_with_emp_se, color = "Omega Error"), size = 1),
+               geom_point(aes(y = rho_mse_with_emp_se, color = "Rho Error"), size = 1)) +
+          labs(title = title_text,
+               x = "Sample Size (N)",
+               y = "Value",
+               color = legend_title,
+               fill = "Confidence Interval") +
+          theme_minimal() +
+          theme(legend.position = c(0.85, 0.85)) +
+          geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
+          scale_x_continuous(breaks = seq(0, max(plot_data$N, na.rm = TRUE), by = 50)) + 
+          coord_cartesian(ylim = c(0.5, 1.5)) +
+          scale_color_manual(values = c("Beta Error" = "red",   
+                                        "Omega Error" = "#006400",  
+                                        "Rho Error" = "blue"))
+      } else {
+      p <- p +
+        list(geom_line(aes(y = beta_mse_with_model_se, color = "Beta Error")),
+             geom_line(aes(y = omega_mse_with_model_se, color = "Omega Error")),
+             geom_line(aes(y = rho_mse_with_model_se, color = "Rho Error")),
+             geom_point(aes(y = beta_mse_with_model_se, color = "Beta Error"), size = 1),
+             geom_point(aes(y = omega_mse_with_model_se, color = "Omega Error"), size = 1),
+             geom_point(aes(y = rho_mse_with_model_se, color = "Rho Error"), size = 1)) +
+        labs(title = title_text,
+             x = "Sample Size (N)",
+             y = "Value",
+             color = legend_title,
+             fill = "Confidence Interval") +
+        theme_minimal() +
+        theme(legend.position = c(0.85, 0.85)) +
+        geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
+        scale_x_continuous(breaks = seq(0, max(plot_data$N, na.rm = TRUE), by = 50)) + 
+        coord_cartesian(ylim = c(0.5, 1.5)) +
+        scale_color_manual(values = c("Beta Error" = "red",   
+                                      "Omega Error" = "#006400",  
+                                      "Rho Error" = "blue"))
+      }
     }
     
     if(input$plot_type == "sd"){
@@ -469,7 +520,7 @@ shinyApp(ui = ui, server = server)
 
 
 
-# Comparing beta ----------------------------------------------------------
+# Comparing all inbetween beta's ----------------------------------------------------------
 library(shiny)
 library(ggplot2)
 library(dplyr)
@@ -873,5 +924,174 @@ server <- function(input, output, session) {
 
 shinyApp(ui = ui, server = server)
 
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# Standardised Mean Squared Error Plot ------------------------------------
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  titlePanel("Model Parameter vs. SMSE"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      width = 2,
+      selectInput("plot_type", "Select Plot Type:",
+                  choices = c("beta", "rho", "omega", "T")),
+      # Dynamic UI for the selected plot type*s corresponding variable input
+      uiOutput("filter_ui"),
+      checkboxInput("advancedSEopt", "Switch to Empirical SE", value = FALSE)
+    ),
+    mainPanel(width = 10,
+      plotOutput("main_plot")
+    ),
+    position = "right"
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  # Load dataset
+  dataset <- reactive({
+  req(input$plot_type)
+  df <- tryCatch({
+    read_csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v2.csv"))
+  }, error = function(e) {
+    showNotification(paste("Error reading CSV:", e$message), type = "error")
+    NULL
+  })
+  
+  df
+})
+  
+  # Custom allowed values for each parameter
+  param_values <- list(
+    beta = c(0, 1, 2, 3, 4),
+    rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    omega = c(0.25^2, 1, 4^2),
+    T = c(2, 3, 4)
+  )
+  
+  # Mapping from UI param names to dataset column names
+  param_mapping <- list(
+    beta = "beta_free",
+    omega = "omega_var",
+    rho = "rho",
+    T = "Tfull"
+  )
+  
+  # Dynamic UI creation
+  output$filter_ui <- renderUI({
+    req(input$plot_type)
+    other_params <- setdiff(names(param_values), input$plot_type)
+    
+    ui_list <- lapply(other_params, function(param) {
+      vals <- param_values[[param]]
+      
+      # If the parameter is "omega", use a selectInput instead of a sliderInput
+      if (param == "omega") {
+        selectInput(
+          inputId = paste0("input_", param),
+          label = paste("Select", param),
+          choices = vals,
+          selected = vals[1]
+        )
+      } else {
+        # For other parameters, use sliderInput
+        step_size <- if (length(unique(diff(vals))) == 1) {
+          unique(diff(vals))
+        } else {
+          min(diff(sort(unique(vals))))
+        }
+        
+        sliderInput(
+          inputId = paste0("input_", param),
+          label = paste("Select", param),
+          min = min(vals),
+          max = max(vals),
+          value = vals[1],
+          step = step_size,
+          round = TRUE
+        )
+      }
+    })
+    
+    do.call(tagList, ui_list)
+  })
+  
+  # Reactive for filtered data
+  filtered_data <- reactive({
+    req(input$plot_type, dataset())
+    
+    df <- dataset()
+    plot_param <- input$plot_type
+    param_names <- setdiff(names(param_values), plot_param)
+    
+    for (param in param_names) {
+      col_name <- param_mapping[[param]] # correct var name
+      value <- input[[paste0("input_", param)]]  # input value
+      
+      df <- df[df[[col_name]] == value, ]
+    }
+    
+    df <- df %>% dplyr::filter(n_reps == 3000, N == 500)
+    
+    df
+  })
+  
+  output$main_plot <- renderPlot({
+    req(filtered_data())
+    
+    df <- filtered_data()
+    
+    # Use param_values to define x-axis order
+    x_levels <- param_values[[input$plot_type]]
+    
+    p <- ggplot(df, aes(x = x_levels)) 
+    
+    if(!(input$advancedSEopt)){
+      p <- p + geom_line(aes(y = beta_mse_with_emp_se, color = "Beta Error")) +
+        geom_point(aes(y = beta_mse_with_emp_se, color = "Beta Error"), size = 1) +
+        geom_line(aes(y = omega_mse_with_emp_se, color = "Omega Error")) +
+        geom_point(aes(y = omega_mse_with_emp_se, color = "Omega Error"), size = 1) +
+        geom_line(aes(y = rho_mse_with_emp_se, color = "Rho Error")) +
+        geom_point(aes(y = rho_mse_with_emp_se, color = "Rho Error"), size = 1)
+    } else {
+      p <- p + geom_line(aes(y = beta_mse_with_model_se, color = "Beta Error")) +
+        geom_point(aes(y = beta_mse_with_model_se, color = "Beta Error"), size = 1) +
+        geom_line(aes(y = omega_mse_with_model_se, color = "Omega Error")) +
+        geom_point(aes(y = omega_mse_with_model_se, color = "Omega Error"), size = 1) +
+        geom_line(aes(y = rho_mse_with_model_se, color = "Rho Error")) +
+        geom_point(aes(y = rho_mse_with_model_se, color = "Rho Error"), size = 1)
+    }
+     
+    p <- p + labs(
+        title = paste("SMSE vs.", input$plot_type),
+        x = input$plot_type,
+        y = "SMSE",
+        color = "Error Type"
+      ) +
+      theme_minimal() +
+      theme(
+        legend.position = c(0.85, 0.85),
+        plot.title = element_text(hjust = 0.5)
+      ) +
+      geom_hline(yintercept = 1, linetype = "dotted", color = "black") +
+      scale_x_continuous(breaks = x_levels) +
+      coord_cartesian(ylim = c(0.5, 1.5)) +
+      scale_color_manual(values = c(
+        "Beta Error" = "red",
+        "Omega Error" = "#006400",
+        "Rho Error" = "blue"
+      ))
+    
+    print(p)
+  })
+}
+
+
+shinyApp(ui = ui, server = server)
 
 
