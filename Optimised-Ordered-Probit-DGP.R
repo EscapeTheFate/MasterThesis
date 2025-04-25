@@ -1429,14 +1429,14 @@ previous_error_results = read.csv(file = paste0(getwd(), "/GitHub/MasterThesis/R
 error_results = dplyr::bind_rows(previous_error_results, combined_df)
 write.csv(error_results, file = paste0(getwd(), "/GitHub/MasterThesis/Results_Collection/ErrorAvgSd_Results.csv"), row.names = F)
 
-# Testing for the appropriate replication sample size for beta = 1 value:
+## Testing for the appropriate replication sample size for beta values: ----
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000)
 n_reps = c(500, 2500)
 beta_free = c(0, 1, 2, 3, 4)
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
-nrep_samplesizes = c(500, 1000, 1500, 3000)
+nrep_samplesizes = c(500, 3000)
 (parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
 
@@ -1528,30 +1528,85 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
   omega_estimates <- foo$omega
   rho_estimates <- foo$rho
   
+  beta_se = foo$beta_sd
+  omega_se = foo$omega_sd
+  rho_se = foo$rho_sd
+  
   true_parameters <- c(beta = beta_free, omega = omega_var, rho = rho)
   
-  # Get mean error
-  beta_error <- mean(beta_estimates - true_parameters["beta"], na.rm = T)
-  omega_error <- mean(omega_estimates - true_parameters["omega"], na.rm = T) # we are comparing omega_var entry with estimated omega_var parameter
-  rho_error <- mean(rho_estimates - true_parameters["rho"], na.rm = T)
+  # Get mean error (bias)
+  beta_bias <- mean(beta_estimates - true_parameters["beta"])
+  omega_bias <- mean(omega_estimates - true_parameters["omega"]) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_bias <- mean(rho_estimates - true_parameters["rho"])
+  
+  # Get trimmed version of all
+  beta_bias_trimmed <- mean(beta_estimates - true_parameters["beta"], trim = 0.025) # we trim outliers here
+  omega_bias_trimmed <- mean(omega_estimates - true_parameters["omega"], trim = 0.025) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_bias_trimmed <- mean(rho_estimates - true_parameters["rho"], trim = 0.025)
   
   # Now, calculate average standard deviation for each estimate
-  beta_sd_avg <- mean(foo$beta_sd, na.rm = T)
-  omega_sd_avg <- mean(foo$omega_sd, na.rm = T) # these are sd's of omega_var
-  rho_sd_avg <- mean(foo$rho_sd, na.rm = T)
+  avg_of_beta_se <- mean(beta_se)
+  avg_of_omega_se <- mean(omega_se) # these are sd's of omega_var
+  avg_of_rho_se <- mean(rho_se)
   
   # Also, calculate standard deviation for standard deviation estimates of 
   # parameter estimates that will be used as a CI for avg estimate SD plots
-  sd_of_beta_sds <- sd(foo$beta_sd, na.rm = T)
-  sd_of_omega_sds <- sd(foo$omega_sd, na.rm = T) # these are sd's of omega_var
-  sd_of_rho_sds <- sd(foo$rho_sd, na.rm = T)
+  sd_of_beta_se <- sd(beta_se)
+  sd_of_omega_se <- sd(omega_se) # these are sd's of omega_var
+  sd_of_rho_se <- sd(rho_se)
   
   # Calculate SD of the Sample of Estimates (so on beta, omega and rho estimates)
   # This uses the code in CalcSampleEstimateSD, but directly implemented
   
-  beta_estimate_sd = sd(beta_estimates, na.rm = T)
-  omega_estimate_sd = sd(omega_estimates, na.rm = T)
-  rho_estimate_sd = sd(rho_estimates, na.rm = T)
+  sd_of_beta_estimates = sd(beta_estimates)
+  sd_of_omega_estimates = sd(omega_estimates)
+  sd_of_rho_estimates = sd(rho_estimates)
+  
+  # Calculate Squared error of every parameter estimate
+  beta_mse = mean( (beta_estimates - true_parameters["beta"])^2 )
+  omega_mse = mean( (omega_estimates - true_parameters["omega"])^2 )
+  rho_mse = mean( (rho_estimates - true_parameters["rho"])^2 )
+  
+  # Calculate standardised MSE based on per replication model-based SE, the avg.
+  # SE over all replications and lastly empirical SD over corresponding parameter
+  # estimate
+  
+  # First, model-based SE are used with incorporate the SE model value of the
+  # corresponding parameter estimate per simulated replication (n_reps) 
+  beta_smse_with_model_se <- mean( ((beta_estimates - true_parameters["beta"])/beta_se)^2 )
+  omega_smse_with_model_se <- mean( ((omega_estimates - true_parameters["omega"])/omega_se)^2 ) # we are comparing omega_var entry with estimated omega_var parameter
+  rho_smse_with_model_se <- mean( ((rho_estimates - true_parameters["rho"])/rho_se)^2 )
+  
+  # Then, calculate SMSE using empirical SD and avg. SE on per-replica SE 
+  beta_smse_with_emp_se = beta_mse/(sd_of_beta_estimates^2)
+  omega_smse_with_emp_se = omega_mse/(sd_of_omega_estimates^2)
+  rho_smse_with_emp_se = rho_mse/(sd_of_rho_estimates^2)
+
+  # Lastly, calc the SMSE where we divide by the avg. of the SE model estimates
+  beta_smse_with_avg_model_se = beta_mse/(avg_of_beta_se^2)
+  omega_smse_with_avg_model_se = omega_mse/(avg_of_omega_se^2)
+  rho_smse_with_avg_model_se = rho_mse/(avg_of_rho_se^2)
+  
+  # Finally, get trimmed version of everything too
+  beta_mse_trimmed = mean( (beta_estimates - true_parameters["beta"])^2 , trim = 0.025)
+  omega_mse_trimmed = mean( (omega_estimates - true_parameters["omega"])^2 , trim = 0.025)
+  rho_mse_trimmed = mean( (rho_estimates - true_parameters["rho"])^2 , trim = 0.025)
+  
+  avg_of_beta_se_trimmed <- mean(beta_se , trim = 0.025)
+  avg_of_omega_se_trimmed <- mean(omega_se , trim = 0.025) # these are sd's of omega_var
+  avg_of_rho_se_trimmed <- mean(rho_se , trim = 0.025)
+  
+  beta_smse_with_model_se_trimmed <- mean( ((beta_estimates - true_parameters["beta"])/beta_se)^2 , trim = 0.025)
+  omega_smse_with_model_se_trimmed <- mean( ((omega_estimates - true_parameters["omega"])/omega_se)^2 , trim = 0.025) 
+  rho_smse_with_model_se_trimmed <- mean( ((rho_estimates - true_parameters["rho"])/rho_se)^2 , trim = 0.025)
+  
+  beta_smse_with_emp_se_trimmed = mean( ((beta_estimates - true_parameters["beta"])/sd_of_beta_estimates)^2 , trim = 0.025)
+  omega_smse_with_emp_se_trimmed = mean( ((omega_estimates - true_parameters["omega"])/sd_of_omega_estimates)^2 , trim = 0.025)
+  rho_smse_with_emp_se_trimmed = mean( ((rho_estimates - true_parameters["rho"])/sd_of_rho_estimates)^2 , trim = 0.025)
+  
+  beta_smse_with_avg_model_se_trimmed = mean( ((beta_estimates - true_parameters["beta"])/mean(beta_se, trim = 0.025))^2 , trim = 0.025)
+  omega_smse_with_avg_model_se_trimmed = mean( ((omega_estimates - true_parameters["omega"])/mean(omega_se, trim = 0.025))^2 , trim = 0.025)
+  rho_smse_with_avg_model_se_trimmed = mean( ((rho_estimates - true_parameters["rho"])/mean(rho_se, trim = 0.025))^2 , trim = 0.025)
   
   # Calculate the Confidence Intervals + the success rate of estimates lying
   # within the interval (same as code in CalcConfidenceIntervalOverlaps, but here)
@@ -1704,15 +1759,18 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
   wilson_rho <- wilson_ci(p_rho, length(rho_estimates), z_value)
   
   
-  list_of_dataframes[[i]] = data.frame(beta_error = beta_error, 
-                                       beta_sd_avg = beta_sd_avg,
-                                       sd_of_beta_sds = sd_of_beta_sds,
-                                       omega_error = omega_error,
-                                       omega_sd_avg = omega_sd_avg,
-                                       sd_of_omega_sds = sd_of_omega_sds,
-                                       rho_error = rho_error,
-                                       rho_sd_avg = rho_sd_avg,
-                                       sd_of_rho_sds = sd_of_rho_sds,
+  list_of_dataframes[[i]] = data.frame(beta_bias = beta_bias, 
+                                       avg_of_beta_se = avg_of_beta_se,
+                                       sd_of_beta_se = sd_of_beta_se,
+                                       
+                                       omega_bias = omega_bias,
+                                       avg_of_omega_se = avg_of_omega_se,
+                                       sd_of_omega_se = sd_of_omega_se,
+                                       
+                                       rho_bias = rho_bias,
+                                       avg_of_rho_se = avg_of_rho_se,
+                                       sd_of_rho_se = sd_of_rho_se,
+                                       
                                        rho = rho,
                                        N = N,
                                        n_reps = nreps_samplesize_number,
@@ -1720,9 +1778,9 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                                        omega_var = omega_var,
                                        Tfull = Tfull,
                                        
-                                       beta_estimate_sd = beta_estimate_sd,
-                                       omega_estimate_sd = omega_estimate_sd,
-                                       rho_estimate_sd = rho_estimate_sd,
+                                       sd_of_beta_estimates = sd_of_beta_estimates,
+                                       sd_of_omega_estimates = sd_of_omega_estimates,
+                                       sd_of_rho_estimates = sd_of_rho_estimates,
                                        
                                        ci_lower_beta = ci_lower[1],
                                        ci_upper_beta = ci_upper[1],
@@ -1760,6 +1818,41 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                                        bino_ci_norm_upper_rho = binomial_norm_upper_rho,
                                        bino_ci_exact_upper_rho = binomial_exact_upper_rho,
                                        bino_ci_wilson_upper_rho = wilson_rho[2],
+                                       
+                                       
+                                       beta_mse,
+                                       beta_smse_with_model_se, 
+                                       beta_smse_with_emp_se,
+                                       beta_smse_with_avg_model_se,
+                                       
+                                       omega_mse,
+                                       omega_smse_with_model_se,
+                                       omega_smse_with_emp_se,
+                                       omega_smse_with_avg_model_se,
+                                       
+                                       rho_mse,
+                                       rho_smse_with_model_se,
+                                       rho_smse_with_emp_se,
+                                       rho_smse_with_avg_model_se,
+                                       
+                                       beta_bias_trimmed,
+                                       omega_bias_trimmed,
+                                       rho_bias_trimmed,
+                                       beta_mse_trimmed,
+                                       beta_smse_with_model_se_trimmed, 
+                                       beta_smse_with_emp_se_trimmed,
+                                       beta_smse_with_avg_model_se_trimmed,
+                                       
+                                       omega_mse_trimmed,
+                                       omega_smse_with_model_se_trimmed,
+                                       omega_smse_with_emp_se_trimmed,
+                                       omega_smse_with_avg_model_se_trimmed,
+                                       
+                                       rho_mse_trimmed,
+                                       rho_smse_with_model_se_trimmed,
+                                       rho_smse_with_emp_se_trimmed,
+                                       rho_smse_with_avg_model_se_trimmed,
+                                       
                                        row.names = NULL)
   
 }
@@ -1769,7 +1862,7 @@ View(combined_df[seq(from = 1, to = 57, by = 7),]) # compare various sample size
 View(combined_df[seq(from = 5230, to = 5286, by = 7),]) # compare various sample sizes for N = 125, rho = -0.9, T = 3, omega = 16
 
 # Save calculated dataframe
-write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB.csv"), row.names = F)
+write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v2.csv"), row.names = F)
 
 
 
