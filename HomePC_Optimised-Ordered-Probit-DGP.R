@@ -1235,7 +1235,37 @@ n_reps = c(500)
 beta_free = c(3.9, 3.8) 
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
-set.seed(328) # N=500, Tfull=3, beta=3.9, rho=0, omega=1
+set.seed(328) # N=500, Tfull=3, beta=3.9, rho=0, omega=1 <- set.seed(328) already used on prof pc
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = setdiff(c(seq(from = 0, to = 4, by = 0.2)), c(0, 1, 2, 3, 4))
+omega_var = c(0.25^2, 0.5^2, 0.75^2, 1)
+Tfull = c(2:4) 
+set.seed(342) # N=500, Tfull=2, beta=1.2, rho=0.9, omega=0.0625 which is row 35
+# set.seed(344) starting from row 36, 
+# set.seed(345) starting from row 396 (N=500, Tfull=2, beta=2.2, rho=-0.3, omega=1 which is row 395)
+# set.seed(350) starting from row 517 (N=500, Tfull=3, beta=2.4, rho=0.3, omega=0.0625)
+# set.seed(351) starting from row 546 (N=500, Tfull=3, beta=3.4, rho=0.6, omega=0.0625)
+approx_match <- function(x, target, tol = 1e-8) {
+  abs(x - target) < tol
+} # due to floating point madness which gives me cancer and delusion at the same time
+which(parameters$Tfull == 3 & approx_match(parameters$beta_free, 3.4) & approx_match(parameters$rho, 0.6) & approx_match(parameters$omega_var, 0.0625))
+parameters = parameters[-c(1:545),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = c(0, 1, 2, 3, 4)
+omega_var = c(0.5^2, 0.75^2, 2^2, 3^2)
+Tfull = c(2:4) 
+set.seed(346) # set.seed(347) starting from row 57 (N=500, Tfull=2, beta=2, rho=0.9, omega=0.5625)
+# set.seed(348) startingh from row 176 (N=500, Tfull=3, beta=4, rho=0.9, omega=0.25)
+# set.seed(349) startingh from row 380 (N=500, Tfull=4, beta=4, rho=-0.9, omega=4)
+# N=500, Tfull=3, beta=1.8, rho=0.9, omega=0.25
+which(parameters$Tfull == 4 & parameters$beta_free == 4 & parameters$rho == -0.9 & parameters$omega_var == 4)
+parameters = parameters[-c(1:379),]
 
 #
 # True Variance calcs -----------------------------------------------------
