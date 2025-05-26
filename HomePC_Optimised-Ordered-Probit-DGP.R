@@ -1248,11 +1248,21 @@ set.seed(342) # N=500, Tfull=2, beta=1.2, rho=0.9, omega=0.0625 which is row 35
 # set.seed(345) starting from row 396 (N=500, Tfull=2, beta=2.2, rho=-0.3, omega=1 which is row 395)
 # set.seed(350) starting from row 517 (N=500, Tfull=3, beta=2.4, rho=0.3, omega=0.0625)
 # set.seed(351) starting from row 546 (N=500, Tfull=3, beta=3.4, rho=0.6, omega=0.0625)
+# set.seed(352) starting from row 617 (N=500, Tfull=3, beta=1.8, rho=0.9, omega=0.25)
+# set.seed(355) starting from row 751 (N=500, Tfull=3, rho=-0.6, beta=3.8, omega=0.25)
+# set.seed(356) starting from row X (N=500, Tfull=3, beta=2.8, rho=-0.9, omega=0.5625)
+# set.seed(357) starting from row 852 (N=500, Tfull=3, beta=2.4, rho=0, omega=1)
+# set.seed(358) starting from row 898 (N=500, Tfull=4, beta=0.2, rho=-0.9, omega=0.0625)
+# set.seed(362) starting from row 1072 N=500, Tfull=4, beta=2.2, rho=0.9, omega=0.25
+# set.seed(363) starting from row 1204 (N=500, Tfull=4, beta=2.8, rho=0.6, omega=0.5625)
+# see laptop seed for omega = 1 sims
+# set.seed(364) starting from row 1339 (omega = 1 and beta_free = 3.8)
+# N=500, Tfull=4, beta=3.8, rho=0.3, omega=1
 approx_match <- function(x, target, tol = 1e-8) {
   abs(x - target) < tol
 } # due to floating point madness which gives me cancer and delusion at the same time
-which(parameters$Tfull == 3 & approx_match(parameters$beta_free, 3.4) & approx_match(parameters$rho, 0.6) & approx_match(parameters$omega_var, 0.0625))
-parameters = parameters[-c(1:545),]
+which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 3.8) & approx_match(parameters$rho, -0.9) & approx_match(parameters$omega_var, 1))
+parameters = parameters[-c(1:1338),]
 
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(500) 
@@ -1263,9 +1273,18 @@ Tfull = c(2:4)
 set.seed(346) # set.seed(347) starting from row 57 (N=500, Tfull=2, beta=2, rho=0.9, omega=0.5625)
 # set.seed(348) startingh from row 176 (N=500, Tfull=3, beta=4, rho=0.9, omega=0.25)
 # set.seed(349) startingh from row 380 (N=500, Tfull=4, beta=4, rho=-0.9, omega=4)
-# N=500, Tfull=3, beta=1.8, rho=0.9, omega=0.25
 which(parameters$Tfull == 4 & parameters$beta_free == 4 & parameters$rho == -0.9 & parameters$omega_var == 4)
 parameters = parameters[-c(1:379),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(7000)
+beta_free = c(0, 1, 2, 3, 4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2) 
+set.seed(353) # set.seed(354) starting from row 12 (ErrAvgSD_N=500_Tfull=2_nreps=7000_rho=0_beta=1_omega=0.0625)
+which(parameters$Tfull == 2 & parameters$beta_free == 1 & parameters$rho == 0 & parameters$omega_var == 0.0625)
+parameters = parameters[-c(1:11),]
 
 #
 # True Variance calcs -----------------------------------------------------
