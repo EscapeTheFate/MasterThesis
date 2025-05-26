@@ -1257,12 +1257,12 @@ set.seed(342) # N=500, Tfull=2, beta=1.2, rho=0.9, omega=0.0625 which is row 35
 # set.seed(363) starting from row 1204 (N=500, Tfull=4, beta=2.8, rho=0.6, omega=0.5625)
 # see laptop seed for omega = 1 sims
 # set.seed(364) starting from row 1339 (omega = 1 and beta_free = 3.8)
-# N=500, Tfull=4, beta=3.8, rho=0.3, omega=1
+# set.seed(365) starting from row 1343 (N=500, Tfull=4, beta=3.8, rho=0.3, omega=1)
 approx_match <- function(x, target, tol = 1e-8) {
   abs(x - target) < tol
 } # due to floating point madness which gives me cancer and delusion at the same time
-which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 3.8) & approx_match(parameters$rho, -0.9) & approx_match(parameters$omega_var, 1))
-parameters = parameters[-c(1:1338),]
+which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 3.8) & approx_match(parameters$rho, 0.3) & approx_match(parameters$omega_var, 1))
+parameters = parameters[-c(1:1342),]
 
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(500) 
