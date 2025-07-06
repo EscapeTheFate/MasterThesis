@@ -3,25 +3,35 @@
 # Ordered MNP-based Discrete Choice Models in Rprobit environment
 #
 
-# Install package from source ---------------------------------------------
+## Install package from source ---------------------------------------------
 #file.exists("~/Rprobit_0.3.2update.tar.gz")
 #install.packages("~/Rprobit_0.3.2update.tar.gz", repos = NULL, type = "source")
 
-# Load package
+## Load package
 library(Rprobit)
 library(tictoc)
 library(purrr)
 library(future.apply)
 
-# Testing set
-Tfull = 3
-N = 300
-quest = 1
-rho = 0.5
-beta_free = c(1, 2) # Coefs of beta_1 and beta_2, beta_3 is fixed for normalisation/scale
-alpha_1 = 2 # var(beta_1)
-alpha_3 = 1 # var(beta_2)
-rho_beta = 0.2
+## Testing set
+# Tfull = 3
+# N = 300
+# quest = 1
+# rho = 0.5
+# beta_free = c(1, 2) # Coefs of beta_1 and beta_2, beta_3 is fixed for normalisation/scale
+# alpha_1 = 2 # var(beta_1)
+# alpha_3 = 1 # var(beta_2)
+# rho_beta = 0.2
+# omega_var = build_omega_var(alpha_1, alpha_3, rho_beta)
+
+## Data-Generating-Process Structure
+
+create_grid <- function(...) {
+  vars <- list(...)
+  var_names <- sapply(substitute(list(...))[-1], deparse)
+  setNames(expand.grid(vars), var_names)
+}
+
 build_omega_var <- function(alpha_1, alpha_3, rho_beta){
   
   # Here, we assume that Omega is 2x2-matrix, so that it has the following 
@@ -41,23 +51,6 @@ build_omega_var <- function(alpha_1, alpha_3, rho_beta){
   
   return(omega_var)
 }
-omega_var = build_omega_var(alpha_1, alpha_3, rho_beta)
-# Data-Generating-Process Structure
-
-create_grid <- function(...) {
-  vars <- list(...)
-  var_names <- sapply(substitute(list(...))[-1], deparse)
-  setNames(expand.grid(vars), var_names)
-}
-
-# extract_rho_from_omega <- function(omega_var){
-#   alpha_1 <- omega_var[1, 1]
-#   alpha_2 <- omega_var[1, 2]
-#   alpha_3 <- omega_var[2, 2]
-#   
-#   rho <- alpha_2 / sqrt(alpha_1 * alpha_3)
-#   return(rho)
-# }
 
 extract_rho_vector <- function(alpha_1_vec, alpha_2_vec, alpha_3_vec){
   mapply(function(a1, a2, a3) a2 / sqrt(a1 * a3),
@@ -470,20 +463,36 @@ get_error_and_averages_dgp2 <- function(n_reps, Tfull, N, quest = 1, beta_free, 
 
 # Define grid level to map get_error on (before on all pcs):
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
-N = c(20, 30, 40)
-n_reps = c(500)
-beta_free = c(0)
-omega_var = c(4^2)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(3000)
+beta1 = 1
+beta2 = 1
 Tfull = c(2:4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1)
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 set.seed(500) 
 
 # Fit grid and obtain results ---------------------------------------------
-(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+(parameters = create_grid(rho, n_reps, beta1, beta2, alpha_1, alpha_3, rho_beta, Tfull, N))
 
 # Iterate over parameter df dimension (different from DGP1 which was based on 
 # pmap due to legacy reasons of calc'ing metrics immediately and not afterwards)
-for (i in 1:dim(parameters)[1]){
-pmap(parameters[i,], get_error_and_averages)
+for (i in 1:5){ # dim(parameters)[1]
+  get_error_and_averages_dgp2(n_reps = 100,
+                              Tfull = parameters$Tfull[i],
+                              N = parameters$N[i],
+                              quest = 1,
+                              beta_free = c(parameters$beta1[i], parameters$beta2[i]),
+                              rho = parameters$rho[i],
+                              omega_var = build_omega_var(parameters$alpha_1[i],
+                                                          parameters$alpha_3[i],
+                                                          parameters$rho_beta[i]),
+                              return_val = "",
+                              timer_error = T,
+                              timer_data = F,
+                              DontSkipFit = T,
+                              saveEstimates = T)
 }
 error <- pmap(parameters, get_error_and_averages)
 
