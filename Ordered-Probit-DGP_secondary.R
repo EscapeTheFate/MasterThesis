@@ -284,7 +284,7 @@ get_simulation_estimates_dgp2 <- function(Tfull, # number of choice occasions (t
           message("Model fitting failed: ", conditionMessage(e))
           
           # Return the same structure with NA values
-          list(b = b, omega = omega, rho = rho, conv = conv, tau_raw = tau_raw)
+          list(b1, b2, omega_b1, omega_b2, omega_cov, rho, conv, tau_raw)
         }
       }
     )
@@ -464,22 +464,22 @@ get_error_and_averages_dgp2 <- function(n_reps, Tfull, N, quest = 1, beta_free, 
 # Define grid level to map get_error on (before on all pcs):
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
-n_reps = c(3000)
+n_reps = c(1500)
 beta1 = 1
 beta2 = 1
 Tfull = c(2:4)
-alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1)
-alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+alpha_1 = c(1) # var(beta_1)
+alpha_3 = c(1) # var(beta_2)
 rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 set.seed(500) 
 
 # Fit grid and obtain results ---------------------------------------------
-(parameters = create_grid(rho, n_reps, beta1, beta2, alpha_1, alpha_3, rho_beta, Tfull, N))
+(parameters = create_grid(rho, n_reps, beta1, beta2, alpha_1, alpha_3, rho_beta, N, Tfull))
 
 # Iterate over parameter df dimension (different from DGP1 which was based on 
 # pmap due to legacy reasons of calc'ing metrics immediately and not afterwards)
-for (i in 1:5){ # dim(parameters)[1]
-  get_error_and_averages_dgp2(n_reps = 100,
+for (i in 1:dim(parameters)[1]){ 
+  get_error_and_averages_dgp2(n_reps = parameters$n_reps[i],
                               Tfull = parameters$Tfull[i],
                               N = parameters$N[i],
                               quest = 1,
