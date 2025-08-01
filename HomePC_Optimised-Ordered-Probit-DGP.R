@@ -232,20 +232,24 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
   return(result)
 }
 
-# set.seed(1) ----
-# get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
-#                          N = 100, # individuals
-#                          quest = 1, # num of questions (master thesis is for now limited to 1)
-#                          beta_free = 1, # beta coefs; here: (free, fixed)
-#                          rho = 0.5, # rho in error AR(1)-process
-#                          omega_var = 0.5,
-#                          return_val = "summary", # if return should be something else
-#                          DontSkipFit = T, # If simulation 1 to K takes too long, 
-#                          timer = F)       # one may stop at k and may want to continue 
-#                                           # estimating at k+1, then the DGP of iteration
-#                                           # 1 to k will be reproduced without estimation (time-consuming),
-#                                           # to then continue estimating afterwards (don't 
-#                                           # forget to pass on DontSkipFit = F for 1 to k)
+set.seed(1) ----
+get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
+                         N = 1000, # individuals
+                         quest = 1, # num of questions (master thesis is for now limited to 1)
+                         beta_free = 1, # beta coefs; here: (free, fixed)
+                         rho = 0.5, # rho in error AR(1)-process
+                         omega_var = 0.5,
+                         return_val = "summary", # if return should be something else
+                         timer = F,
+                         DontSkipFit = T) # If simulation 1 to K takes too long,
+                                # one may stop at k and may want to continue
+                                          # estimating at k+1, then the DGP of iteration
+                                          # 1 to k will be reproduced without estimation (time-consuming),
+                                          # to then continue estimating afterwards (don't
+                                          # forget to pass on DontSkipFit = F for 1 to k)
+
+get_simulation_estimates(Tfull, N, quest, beta_free, rho, omega_var = 4, return_val, timer, DontSkipFit)
+get_simulation_estimates(Tfull = 3, N = 1000, quest = 1, beta_free = 1, rho = 0.5, omega_var = 0.5, return_val = "summary", timer = F, DontSkipFit = T)
 
 # Obtain error stats ------------------------------------------------------
 # To-Do:
@@ -386,8 +390,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-#set.seed(1) # ---------
-#foo = get_error_and_averages(n_reps = 1, Tfull = 2, N = 20000, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.2^2, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
+set.seed(1) # ---------
+foo = get_error_and_averages(n_reps = 1, Tfull = 4, N = 2000, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.2^2, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
 
 ## Extract error and average sd for different models --------------------------
 
@@ -1285,6 +1289,57 @@ Tfull = c(2)
 set.seed(353) # set.seed(354) starting from row 12 (ErrAvgSD_N=500_Tfull=2_nreps=7000_rho=0_beta=1_omega=0.0625)
 which(parameters$Tfull == 2 & parameters$beta_free == 1 & parameters$rho == 0 & parameters$omega_var == 0.0625)
 parameters = parameters[-c(1:11),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = setdiff(c(seq(from = 4, to = 5, by = 0.2)), c(0, 1, 2, 3, 4, 5))
+omega_var = c(0.25^2, 0.5^2, 0.75^2, 1)
+Tfull = c(2:4) 
+set.seed(368)
+# set.seed(369) starting from row 137 (N=500, Tfull=3, beta=4.8, rho=-0.3, omega=0.0625)
+# set.seed(370) starting from row 141 (N=500, Tfull=3, beta=4.8, rho=0.9, omega=0.0625)
+which(parameters$Tfull == 3 & parameters$beta_free == 4.8 & parameters$rho == 0.9 & parameters$omega_var == 0.0625)
+parameters = parameters[-c(1:140),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = setdiff(c(seq(from = 4, to = 5, by = 0.2)), c(0, 1, 2, 3, 4, 5))
+omega_var = c(2^2, 3^2, 4^2)
+Tfull = c(2:4) 
+set.seed(375) # set.seed(377) starting from row 252
+parameters = parameters[-c(1:251),]
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(7000)
+beta_free = 5
+omega_var = c(0.25^2, 0.5^2, 0.75^2, 1, 2^2, 3^2, 4^2)
+Tfull = c(2:4) 
+set.seed(378) # set.seed(379) starting from row 3
+# set.seed(380) starting from row 22 (N=500, Tfull=2, beta=5, rho=0.9, omega=0.5625)
+# set.seed(383) starting from row 52 (N=500, Tfull=3, beta=5, rho=-0.6, omega=0.0625)
+# set.seed(384) starting from row 54 to row 56 (N=500, Tfull=3, beta=5, rho=0 - 0.9, omega=0.0625)
+which(parameters$Tfull == 3 & parameters$beta_free == 5 & parameters$rho == 0.9 & parameters$omega_var == 0.0625)
+parameters = parameters[-c(1:53),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(7000)
+beta_free = 5
+omega_var = c(1, 4^2)
+Tfull = c(3)
+set.seed(385)
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(7000)
+beta_free = 5
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(4)
 
 #
 # True Variance calcs -----------------------------------------------------
