@@ -313,3 +313,1528 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
   return(result)
 }
 
+
+
+
+# Some graphic related things ---------------------------------------------
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(viridis)
+library(ggnewscale)
+library(grid)
+
+original = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v3.csv")) %>% filter(N != 500)
+original2 = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v5.csv"))
+original = rbind(original, original2)
+
+# Beta Bias Pics ----------------------------------------------------------
+## Varying mean beta coefficient increases bias ----
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, omega_var == 1)
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = beta_bias, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = beta_lower, ymax = beta_upper, fill = as.factor(beta_free)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Varying omega_var increases mean beta bias ----
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, beta_free == 2)
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = beta_bias, group = omega_var, color = as.factor(omega_var))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = beta_lower, ymax = beta_upper, fill = as.factor(omega_var)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 2,\nρ = -0.9\n\n# of Reps:\n~3000\n\nVar ω²:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 2,\nρ = -0.9\n\n# of Reps:\n~3000\n\nVar ω²:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Bias of Mean β1 Estimate vs. Sample Size (N)",
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+
+## Compare avg. model-based SE with empirical SE ----
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, beta_free == 1) %>% 
+  filter(beta_free %in% c(0,1,2,3,4), omega_var %in% c(0.25^2, 1, 4^2)) 
+
+ggplot(data, aes(x = N, color = as.factor(omega_var))) + 
+  # Model-based SE (solid line)
+  geom_line(aes(y = avg_of_beta_se, linetype = "Avg. Model-\nbased")) + 
+  geom_point(aes(y = avg_of_beta_se), size = 1) +
+  
+  # Empirical SE (dashed line)
+  geom_line(aes(y = sd_of_beta_estimates, linetype = "Empirical")) +
+  geom_point(aes(y = sd_of_beta_estimates), shape = 17, size = 1) +
+  
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Mean β1") +
+  
+  # Add linetype legend
+  scale_linetype_manual(
+    name = "SE Type",
+    values = c("Avg. Model-\nbased" = "solid", "Empirical" = "dashed")
+  ) +
+  
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  
+  labs(
+    title = expression("SE Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Standard Error"
+  ) +
+  
+  coord_cartesian(ylim = c(0, 4)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+
+
+## Rho vs. Beta Empirical SE -----
+data = original %>% filter(Tfull == 2, N == 300, n_reps == 3000, omega_var == 1)
+
+ggplot(data, aes(x = rho, y = sd_of_beta_estimates, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 300,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 300,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Empirical SE of beta estimate vs. AR(1) coefficient ρ",
+    x = "Rho (ρ)",
+    y = "Empirical standard error",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) + 
+  coord_cartesian(ylim = c(0, 1))
+
+
+## Rho vs. Beta Bias -----
+data = original %>% filter(Tfull == 2, N == 100, n_reps == 3000, omega_var == 0.25^2) %>%
+  filter(beta_free %in% c(0, 1, 2, 3, 4, 0.4, 0.8))
+ggplot(data, aes(x = rho, y = beta_bias, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 3,\nN = 300,\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 3,\nN = 300,\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Rho vs. Beta Bias",
+    x = "Rho",
+    y = "Beta Bias",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 0.2))
+
+
+## TRASH: Varying rho and the effect on bias over N -------------------------------
+data = original %>% filter(Tfull == 2, n_reps == 3000, beta_free == 2, omega_var == 16)
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = beta_bias, group = rho, color = rho)) + 
+  geom_line(size = 1) + 
+  geom_point(size = 1) +
+  scale_color_gradient2(low = "blue", mid = "yellow", high = "red", midpoint = 0) +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 0.5)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Bias plots as T increases  -------------------------------
+data = original %>% filter(rho == 0.3, n_reps == 3000, omega_var == 1, beta_free == 2)
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = beta_bias, group = Tfull, color = as.factor(Tfull))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = beta_lower, ymax = beta_upper, fill = as.factor(Tfull)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nω² = 1,\nρ = 0.3\n\n# of Reps:\n~3000\n\nTime T:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nω² = 1,\nρ = 0.3\n\n# of Reps:\n~3000\n\nTime T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 0.3)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Rho vs. Coverage Probs with beta increasing  -----
+data = original %>% filter(Tfull == 2, N == 200, n_reps == 3000, omega_var == 1)
+ggplot(data, aes(x = rho, y = p_beta, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Coverage Probability for Mean β vs. AR(1) coefficient ρ",
+    x = "Rho",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.85, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+data$beta_CI_width <- data$bino_ci_exact_upper_beta - data$bino_ci_exact_lower_beta
+data <- data %>% dplyr::relocate(beta_CI_width, .before = 1)
+data <- data %>% dplyr::relocate(rho, .before = 1)
+data <- data %>% dplyr::relocate(beta_free, .before = 1)
+
+data <- data %>%
+  mutate(beta_CI_width_rank = rank(-beta_CI_width)) 
+
+## Varying Omega in coverage plots -----------------------------------------
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, beta_free == 0)
+
+ggplot(data, aes(x = N, y = p_beta, group = omega_var, color = as.factor(omega_var))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta, ymax = bino_ci_exact_upper_beta, fill = as.factor(omega_var)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 4,\nρ = -0.9\n\n# of Reps:\n~3000\n\nVar ω²:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 4,\nρ = -0.9\n\n# of Reps:\n~3000\n\nVar ω²:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Coverage Probability for Mean β vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0.7, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black") 
+
+## Other param vs. coverage Probs ------
+data = original %>% filter(N == 200, n_reps == 3000, beta_free == 2, omega_var == 1)
+ggplot(data, aes(x = rho, y = p_beta, group = Tfull, color = as.factor(Tfull))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nTime T:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nTime T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Coverage Probability for Mean β vs. AR(1) coefficient ρ",
+    x = "Mean of Beta Coefficient",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.85, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+## Varying T in coverage plots -----------------------------------------
+data = original %>% filter(rho == -0.9, beta_free == 3, n_reps == 3000, omega_var == 0.25^2)
+
+ggplot(data, aes(x = N, y = p_beta, group = Tfull, color = as.factor(Tfull))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta,
+                  ymax = bino_ci_exact_upper_beta,
+                  fill = as.factor(Tfull)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nβ = 3,\nρ = -0.9\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nTime T:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nβ = 3,\nρ = -0.9\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nTime T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Coverage Probability for Mean β vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0.825, 1)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+
+## Compare coverage rates between SE types while varying Beta -------------------------------
+data = original %>% filter(rho == 0.6, Tfull == 2, n_reps == 3000, omega_var == 1, beta_free %in% c(1,3))
+
+ggplot(data, aes(x = N, group = beta_free)) + 
+  # First set: original p_beta
+  geom_line(aes(y = p_beta, color = as.factor(beta_free))) + 
+  geom_point(aes(y = p_beta, color = as.factor(beta_free)), size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta, ymax = bino_ci_exact_upper_beta, fill = as.factor(beta_free)), 
+              alpha = 0.3, color = NA) +
+  
+  # First color & fill scale: blue-green
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Mean β and\nModel-based") +
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Mean β and\nModel-based") +
+  
+  ggnewscale::new_scale_color() +
+  ggnewscale::new_scale_fill() +
+  
+  geom_line(aes(y = p_beta_rescaled, color = as.factor(beta_free))) + 
+  geom_point(aes(y = p_beta_rescaled, color = as.factor(beta_free)), shape = 1, size = 1.2) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta_rescaled, ymax = bino_ci_exact_upper_beta_rescaled, fill = as.factor(beta_free)), 
+              alpha = 0.3, color = NA) +
+  
+  scale_color_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  scale_fill_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = 0.6\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = 0.6\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = expression("CI Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability"
+  ) +
+  coord_cartesian(ylim = c(0.75, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+## Compare coverage rates between SE types while varying Omega -------------------------------
+data = original %>% filter(rho == 0.6, Tfull == 2, n_reps == 3000, beta_free == 2)
+
+ggplot(data, aes(x = N, group = omega_var)) + 
+  # First set: original p_beta
+  geom_line(aes(y = p_beta, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_beta, color = as.factor(omega_var)), size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta, ymax = bino_ci_exact_upper_beta, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  # First color & fill scale: blue-green
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Var ω² and\nModel-based") +
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Var ω² and\nModel-based") +
+  
+  ggnewscale::new_scale_color() +
+  ggnewscale::new_scale_fill() +
+  
+  geom_line(aes(y = p_beta_rescaled, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_beta_rescaled, color = as.factor(omega_var)), shape = 1, size = 1.2) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta_rescaled, ymax = bino_ci_exact_upper_beta_rescaled, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  scale_color_manual(
+    values = c("purple", "red",  "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  scale_fill_manual(
+    values = c("purple", "red",  "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 2,\nρ = 0.6\n\n# of Reps:\n~3000\n\nVar ω² and\nRescaled:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nβ = 2,\nρ = 0.6\n\n# of Reps:\n~3000\n\nVar ω² and\nRescaled:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = expression("CI Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability"
+  ) +
+  coord_cartesian(ylim = c(0.8, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+# Omega Plots -------------------------------------------------------------
+## Omega variance bias plot for varying beta ----
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, omega_var == 1) %>%
+  filter(beta_free %in% c(0, 2, 4))
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = omega_bias, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = omega_lower, ymax = omega_upper, fill = as.factor(beta_free)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 1)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Omega variance bias plot for varying omega ----
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, beta_free == 2) %>%
+  filter(beta_free %in% c(0, 2, 4), omega_var %in% c(0.25^2, 1, 4^2))
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = omega_bias, group = omega_var, color = as.factor(omega_var))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = omega_lower, ymax = omega_upper, fill = as.factor(omega_var)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 5)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Rho vs. Omega Bias -----
+data = original %>% filter(Tfull == 2, N == 500, n_reps == 3000, omega_var == 0.25^2)
+ggplot(data, aes(x = rho, y = omega_bias, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Rho vs. Omega Bias",
+    x = "Rho",
+    y = "Omega Bias",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 0.04))
+
+# ---
+
+what_to_plot = list(omega_var = 0.25^2,
+                    N = 90,
+                    Tfull = 2)
+
+data_dense  <- original %>%
+  filter(Tfull == what_to_plot$T, N == what_to_plot$N, n_reps == 3000, omega_var == what_to_plot$omega_var) %>%
+  filter(beta_free <= 1) %>%
+  filter(!(beta_free %in% c(0.2, 0.6)))
+
+data_coarse <- original %>%
+  filter(Tfull == what_to_plot$T, N == what_to_plot$N, n_reps == 3000, omega_var == what_to_plot$omega_var) %>% filter(beta_free %in% c(1,2,3,4))
+
+ggplot() +
+  geom_line(data = data_coarse,
+            aes(x = rho, y = omega_bias, group = beta_free, color = as.factor(beta_free)),
+            size = 0.9) +
+  geom_point(data = data_coarse,
+             aes(x = rho, y = omega_bias, color = as.factor(beta_free)),
+             size = 1.8) +
+  scale_color_manual(
+    name = NULL,
+    values = c(`2` = "#FDE725", `3` = "#FDB366", `4` = "#D73027"),
+    guide = guide_legend(order = 2)   # put this legend BELOW
+  ) +
+  ggnewscale::new_scale_color() +
+  geom_line(data = data_dense,
+            aes(x = rho, y = omega_bias, group = beta_free, color = as.factor(beta_free)),
+            size = 0.75) +
+  geom_point(data = data_dense,
+             aes(x = rho, y = omega_bias, color = as.factor(beta_free)),
+             size = 1.5) +
+  scale_color_viridis_d(
+    option = "D", begin = 0.4, end = 0.9,
+    name = paste0(
+      "Fixed\nParams:\nT = ", unique(data_dense$Tfull),
+      "\nN = ", unique(data_dense$N),
+      "\nω² = ", unique(data_dense$omega_var),
+      "\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    guide = guide_legend(order = 1) 
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.box = "vertical",
+    legend.spacing.y = unit(0, "cm"),
+    plot.title = element_text(hjust = 0.1)
+  ) +
+  labs(
+    title = "Rho vs. beta Bias",
+    x = "Rho",
+    y = "beta Bias"
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 0.08)) # 0.1/0.04 for var=1 & T=2/3, 4 for Var=16 & both T
+
+## Rho vs. Omega Empirical SE -----
+data = original %>% filter(Tfull == 2, N == 300, n_reps == 3000, omega_var == 1)
+ggplot(data, aes(x = rho, y = sd_of_omega_estimates, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Rho vs. Omega Bias",
+    x = "Rho",
+    y = "Omega Bias",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 0.2))
+
+# ---
+
+what_to_plot = list(omega_var = 2^2,
+                 N = 500,
+                 Tfull = 2)
+
+data_dense  <- original %>%
+  filter(Tfull == what_to_plot$T, N == what_to_plot$N, n_reps == 3000, omega_var == what_to_plot$omega_var) %>%
+  filter(beta_free <= 1) %>%
+  filter(!(beta_free %in% c(0.2, 0.6)))
+
+data_coarse <- original %>%
+  filter(Tfull == what_to_plot$T, N == what_to_plot$N, n_reps == 3000, omega_var == what_to_plot$omega_var) %>% filter(beta_free %in% c(1,2,3,4))
+
+ggplot() +
+  geom_line(data = data_coarse,
+            aes(x = rho, y = sd_of_omega_estimates, group = beta_free, color = as.factor(beta_free)),
+            size = 0.9) +
+  geom_point(data = data_coarse,
+             aes(x = rho, y = sd_of_omega_estimates, color = as.factor(beta_free)),
+             size = 1.8) +
+  scale_color_manual(
+    name = NULL,
+    values = c(`2` = "#FDE725", `3` = "#FDB366", `4` = "#D73027"),
+    guide = guide_legend(order = 2)   # put this legend BELOW
+  ) +
+  ggnewscale::new_scale_color() +
+  geom_line(data = data_dense,
+            aes(x = rho, y = sd_of_omega_estimates, group = beta_free, color = as.factor(beta_free)),
+            size = 0.75) +
+  geom_point(data = data_dense,
+             aes(x = rho, y = sd_of_omega_estimates, color = as.factor(beta_free)),
+             size = 1.5) +
+  scale_color_viridis_d(
+    option = "D", begin = 0.2, end = 0.7,
+    name = paste0(
+      "Fixed\nParams:\nT = ", unique(data_dense$Tfull),
+      "\nN = ", unique(data_dense$N),
+      "\nω² = ", unique(data_dense$omega_var),
+      "\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    guide = guide_legend(order = 1)   # put this legend ABOVE
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    legend.box = "vertical",
+    legend.spacing.y = unit(0, "cm"),
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = "Rho vs. Omega Empirical SE",
+    x = "Rho",
+    y = "Empirical Standard Error"
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 3)) # 0.1/0.04 for var=1 & T=2/3, 4 for Var=16 & both T
+
+
+## Omega Model-based SE vs. Empirical SE (Vary beta) -----------------------------------
+data = original %>% filter(rho == 0.9, Tfull == 2, n_reps == 3000, omega_var == 0.25^2) %>% filter(beta_free %in% c(0,1,2,3,4))
+
+ggplot(data, aes(x = N, color = as.factor(beta_free))) + 
+  # Model-based SE (solid line)
+  geom_line(aes(y = avg_of_omega_se, linetype = "Avg. Model-\nbased")) + 
+  geom_point(aes(y = avg_of_omega_se), size = 1) +
+  
+  # Empirical SE (dashed line)
+  geom_line(aes(y = sd_of_omega_estimates, linetype = "Empirical")) +
+  geom_point(aes(y = sd_of_omega_estimates), shape = 17, size = 1) +
+  
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Mean β1") +
+  
+  # Add linetype legend
+  scale_linetype_manual(
+    name = "SE Type",
+    values = c("Avg. Model-\nbased" = "solid", "Empirical" = "dashed")
+  ) +
+  
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nMean β1:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nMean β1:"
+      )
+    )
+  ) +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  
+  labs(
+    title = expression("SE Comparison for Omega Variance Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Standard Error"
+  ) +
+  
+  coord_cartesian(ylim = c(0, 3)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+## Omega Model-based SE vs. Empirical SE (Vary Omega) -----------------------------------
+data = original %>% filter(rho == 0.9, Tfull == 2, n_reps == 3000, beta_free == 2) %>% filter(omega_var %in% c(0.25^2, 1, 4^2))
+
+ggplot(data, aes(x = N, color = as.factor(omega_var))) + 
+  # Model-based SE (solid line)
+  geom_line(aes(y = avg_of_omega_se, linetype = "Avg. Model-\nbased")) + 
+  geom_point(aes(y = avg_of_omega_se), size = 1) +
+  
+  # Empirical SE (dashed line)
+  geom_line(aes(y = sd_of_omega_estimates, linetype = "Empirical")) +
+  geom_point(aes(y = sd_of_omega_estimates), shape = 17, size = 1) +
+  
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9, name = "Mean β1") +
+  
+  # Add linetype legend
+  scale_linetype_manual(
+    name = "SE Type",
+    values = c("Avg. Model-\nbased" = "solid", "Empirical" = "dashed")
+  ) +
+  
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nβ = ", unique(data$beta_free),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nβ = ", unique(data$beta_free),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    )
+  ) +
+  
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  
+  labs(
+    title = expression("SE Comparison for Omega Variance Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Standard Error"
+  ) +
+  
+  coord_cartesian(ylim = c(0, 7.5)) + 
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+
+## Omega Bias figure ----
+data = original %>% filter(rho == 0, Tfull == 2, n_reps == 3000, omega_var == 1) %>% filter(beta_free %in% c(0,2,4))
+alpha = 0.05
+z_value = qnorm(1-alpha/2)
+sqrtN_to_divide_by = sqrt(as.numeric(data$success_beta + data$failure_beta))
+data = data %>%
+  mutate(beta_lower = beta_bias - z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         beta_upper = beta_bias + z_value * sd_of_beta_estimates/sqrtN_to_divide_by,
+         omega_lower = omega_bias - z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         omega_upper = omega_bias + z_value * sd_of_omega_estimates/sqrtN_to_divide_by,
+         rho_lower = rho_bias - z_value * sd_of_rho_estimates/sqrtN_to_divide_by,
+         rho_upper = rho_bias + z_value * sd_of_rho_estimates/sqrtN_to_divide_by)
+
+ggplot(data, aes(x = N, y = omega_bias, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = omega_lower, ymax = omega_upper, fill = as.factor(beta_free)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nω² = 1,\nρ = -0.9\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Bias of Mean β1 Estimate vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Bias of Mean β1",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0, 0.5)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "black")
+
+
+
+## Rho vs. Omega Bias (+ Omega in Color) -----------------------------------
+data = original %>% filter(Tfull == 2, n_reps == 3000, beta_free == 2, omega_var == 1^2) %>% filter(N %in% c(50, 80, 100, 150, 200))
+ggplot(data, aes(x = rho, y = omega_bias, group = N, color = as.factor(N))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ",unique(data$Tfull),"\nN = ",unique(data$N),"\nω² = ",unique(data$omega_var),"\n\n# of Reps:\n~3000\n\nMean β1:")
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Rho vs. Omega Bias",
+    x = "Rho",
+    y = "Omega Bias",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0, 1))
+
+## Rho vs. omega Coverage Probs with beta increasing  -----
+data = original %>% filter(Tfull == 2, N == 500, n_reps == 3000, omega_var == 1^2) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2), beta_free %in% c(0, 1, 2, 3, 4))
+ggplot(data, aes(x = rho, y = p_omega_rescaled, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nT = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nMean β1:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Coverage Probability for Mean β vs. AR(1) coefficient ρ",
+    x = "Rho",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.85, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+data$beta_CI_width <- data$bino_ci_exact_upper_beta - data$bino_ci_exact_lower_beta
+data <- data %>% dplyr::relocate(beta_CI_width, .before = 1)
+data <- data %>% dplyr::relocate(rho, .before = 1)
+data <- data %>% dplyr::relocate(beta_free, .before = 1)
+
+data <- data %>%
+  mutate(beta_CI_width_rank = rank(-beta_CI_width)) 
+
+## Rho vs. omega Coverage Probs with Omega increasing  -----
+data = original %>% filter(Tfull == 3, N == 100, n_reps == 3000, beta_free == 0) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2), beta_free %in% c(0, 1, 2, 3, 4))
+ggplot(data, aes(x = rho, y = p_omega_rescaled, group = omega_var, color = as.factor(omega_var))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nN = ", unique(data$N),
+        "\nβ = ", unique(data$beta_free),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nN = ", unique(data$N),
+        "\nβ = ", unique(data$beta_free),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Coverage Probability for Mean β vs. AR(1) coefficient ρ",
+    x = "Rho",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.85, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+## Rho vs. Omega Coverage Probs + Fix Omega and vary N  -----
+data = original %>% filter(Tfull == 2, N %in% c(20, 30, 50, 70, 100, 150), n_reps == 3000, beta_free == 4, omega_var == 4^2) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2), beta_free %in% c(0, 1, 2, 3, 4))
+ggplot(data, aes(x = rho, y = p_omega_rescaled, group = N, color = as.factor(N))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nβ = ", unique(data$beta_free),
+        "\n\n# of Reps:\n~3000\n\nSample\nSize N:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nβ = ", unique(data$beta_free),
+        "\n\n# of Reps:\n~3000\n\nSample\nSize N:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Comparison of Omega Coverage Probability vs. AR(1) coefficient ρ",
+    x = "Rho",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.75, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+
+## Rho vs. Omega Coverage Probs + Fix Omega and vary N and T  -----
+data = original %>% filter(Tfull %in% c(3, 4) , N %in% c(50, 100, 150, 200), n_reps == 3000, beta_free == 4, omega_var == 4^2) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2), beta_free %in% c(0, 1, 2, 3, 4))
+ggplot(data, aes(
+  x = rho,
+  y = p_omega_rescaled,
+  group = interaction(N, Tfull),  # group by both
+  color = as.factor(N),           # N as color
+  linetype = as.factor(Tfull)     # T as line type
+)) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  scale_linetype_manual(
+    values = setNames(
+      c("dotted", "solid"),  # first is for lower T, second for higher T
+      as.character(c(min(unique(data$Tfull)), max(unique(data$Tfull))))
+    )
+  ) +
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(order = 1,
+      title = paste0(
+        "Fixed\nParams:",
+        "\nω² = ", unique(data$omega_var),
+        "\nβ = ", unique(data$beta_free),
+        "\n\n# of Reps:\n~3000\n\nSample\nSize N:"
+      )
+    ),
+    linetype = guide_legend(
+      title = "Time T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Comparison of Coverage Success over AR(1) coefficient ρ for different N and T",
+    x = "Rho",
+    y = "Coverage Probability",
+    color = "N",
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.80, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+## N vs. Omega coverage plots + Vary Omega -----------------------------------------
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, beta_free == 4) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2))
+
+ggplot(data, aes(x = N, y = p_omega_rescaled, group = omega_var, color = as.factor(omega_var))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega_rescaled, ymax = bino_ci_exact_upper_omega_rescaled, fill = as.factor(omega_var)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nβ = ", unique(data$beta_free),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nβ = ", unique(data$beta_free),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Coverage Probability for Mean β vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0.5, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black") 
+
+
+## N vs. Omega Coverage Probability + Varying beta ------------------------------------------
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, omega_var == 1^2) %>%
+  filter(omega_var %in% c(0.25^2, 1, 4^2), beta_free %in% c(0, 2, 4))
+
+ggplot(data, aes(x = N, y = p_omega_rescaled, group = beta_free, color = as.factor(beta_free))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega_rescaled, ymax = bino_ci_exact_upper_omega_rescaled, fill = as.factor(beta_free)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nMean β:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0(
+        "Fixed\nParams:\nT = ", unique(data$Tfull),
+        "\nω² = ", unique(data$omega_var),
+        "\nρ = ", unique(data$rho),
+        "\n\n# of Reps:\n~3000\n\nMean β:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Coverage Probability for Mean β vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0.75, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black") 
+
+
+## Other param vs. fixed N coverage rate ------
+data = original %>% filter(N == 200, n_reps == 3000, beta_free == 2, omega_var == 1)
+ggplot(data, aes(x = rho, y = p_beta, group = Tfull, color = as.factor(Tfull))) + 
+  geom_line(size = 0.75) + 
+  geom_point(size = 1.5) + 
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nTime T:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nβ = 2,\nN = 200,\nω² = 1\n\n# of Reps:\n~3000\n\nTime T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = "Coverage Probability for Mean β vs. AR(1) coefficient ρ",
+    x = "Mean of Beta Coefficient",
+    y = "Coverage Probability",
+    color = expression(omega^2),
+    fill = expression(omega^2)
+  ) +
+  scale_x_continuous(
+    breaks = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9),
+    limits = c(-0.9, 0.9)
+  ) +
+  coord_cartesian(ylim = c(0.85, 1)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+## Varying T in coverage plots -----------------------------------------
+data = original %>% filter(rho == -0.9, beta_free == 3, n_reps == 3000, omega_var == 0.25^2)
+
+ggplot(data, aes(x = N, y = p_beta, group = Tfull, color = as.factor(Tfull))) + 
+  geom_line() + 
+  geom_point(size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta,
+                  ymax = bino_ci_exact_upper_beta,
+                  fill = as.factor(Tfull)), alpha = 0.3, color = NA) +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7) +  # nicer gradient
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7) +
+  guides(
+    color = guide_legend(
+      title = "Fixed\nParams:\nβ = 3,\nρ = -0.9\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nTime T:"
+    ),
+    fill = guide_legend(
+      title = "Fixed\nParams:\nβ = 3,\nρ = -0.9\nω² = 0.25^2\n\n# of Reps:\n~3000\n\nTime T:"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) + 
+  labs(
+    title = expression("Coverage Probability for Mean β vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability",
+    color = "Mean β1",
+    fill = "Mean β1"
+  ) +
+  coord_cartesian(ylim = c(0.825, 1)) + 
+  scale_x_continuous(breaks = seq(from = 0, to = 1000, by = 100)) +
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+
+## Compare Omega vs. Beta coverage rate + Vary Omega -------------------------------
+data = original %>% filter(rho == -0.9, Tfull == 2, n_reps == 3000, omega_var == 4^2, beta_free %in% c(1, 3))
+
+ggplot(data, aes(x = N, group = beta_free)) + 
+  # First set: original p_beta
+  geom_line(aes(y = p_omega_rescaled, color = as.factor(beta_free))) + 
+  geom_point(aes(y = p_omega_rescaled, color = as.factor(beta_free)), size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega_rescaled, ymax = bino_ci_exact_upper_omega_rescaled, fill = as.factor(beta_free)), 
+              alpha = 0.3, color = NA) +
+  
+  # First color & fill scale: blue-green
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Omega Parameter") +
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Omega Parameter") +
+  
+  ggnewscale::new_scale_color() +
+  ggnewscale::new_scale_fill() +
+  
+  geom_line(aes(y = p_beta_rescaled, color = as.factor(beta_free))) + 
+  geom_point(aes(y = p_beta_rescaled, color = as.factor(beta_free)), shape = 1, size = 1.2) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta_rescaled, ymax = bino_ci_exact_upper_beta_rescaled, fill = as.factor(beta_free)), 
+              alpha = 0.3, color = NA) +
+  
+  scale_color_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  scale_fill_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  guides(
+    color = guide_legend( 
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                                 "\nω² = ", unique(data$omega_var),
+                                 "\nρ = ", unique(data$rho),
+                                 "\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                     "\nω² = ", unique(data$omega_var),
+                     "\nρ = ", unique(data$rho),
+                     "\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = expression("CI Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability"
+  ) +
+  coord_cartesian(ylim = c(0.75, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+data = original %>% filter(rho == -0.9, Tfull == 4, n_reps == 3000, beta_free == 4) %>% filter(omega_var %in% c(0.25^2, 1, 4^2))
+
+ggplot(data, aes(x = N, group = omega_var)) + 
+  # First set: original p_beta
+  geom_line(aes(y = p_omega_rescaled, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_omega_rescaled, color = as.factor(omega_var)), size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega_rescaled, ymax = bino_ci_exact_upper_omega_rescaled, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  # First color & fill scale: blue-green
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Omega Parameter") +
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Omega Parameter") +
+  
+  ggnewscale::new_scale_color() +
+  ggnewscale::new_scale_fill() +
+  
+  geom_line(aes(y = p_beta_rescaled, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_beta_rescaled, color = as.factor(omega_var)), shape = 1, size = 1.2) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_beta_rescaled, ymax = bino_ci_exact_upper_beta_rescaled, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  scale_color_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  scale_fill_manual(
+    values = c("red", "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  guides(
+    color = guide_legend( 
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                     "\nβ = ", unique(data$beta_free),
+                     "\nρ = ", unique(data$rho),
+                     "\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+      )
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                     "\nβ = ", unique(data$beta_free),
+                     "\nρ = ", unique(data$rho),
+                     "\n\n# of Reps:\n~3000\n\nMean β and\nRescaled:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = expression("CI Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability"
+  ) +
+  coord_cartesian(ylim = c(0.75, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+## Compare coverage rates between SE types while varying Omega -------------------------------
+data = original %>% filter(rho == 0.9, Tfull == 2, n_reps == 3000, beta_free == 4) %>%
+  filter(beta_free %in% c(0,1,2,3,4), omega_var %in% c(1^2))
+
+ggplot(data, aes(x = N, group = omega_var)) + 
+  # First set: original p_beta
+  geom_line(aes(y = p_omega, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_omega, color = as.factor(omega_var)), size = 1) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega, ymax = bino_ci_exact_upper_omega, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  # First color & fill scale: blue-green
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Var ω² and\nModel-based") +
+  scale_fill_viridis_d(option = "D", begin = 0.2, end = 0.7, name = "Var ω² and\nModel-based") +
+  
+  ggnewscale::new_scale_color() +
+  ggnewscale::new_scale_fill() +
+  
+  geom_line(aes(y = p_omega_rescaled, color = as.factor(omega_var))) + 
+  geom_point(aes(y = p_omega_rescaled, color = as.factor(omega_var)), shape = 1, size = 1.2) + 
+  geom_ribbon(aes(ymin = bino_ci_exact_lower_omega_rescaled, ymax = bino_ci_exact_upper_omega_rescaled, fill = as.factor(omega_var)), 
+              alpha = 0.3, color = NA) +
+  
+  scale_color_manual(
+    values = c("purple", "red",  "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  scale_fill_manual(
+    values = c("purple", "red",  "orange", "gold", "darkred", "tomato", "darkorange"),
+    name = "ω² and\nRescaled"
+  ) +
+  guides(
+    color = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                     "\nβ = ", unique(data$beta_free),
+                     "\nρ = ", unique(data$rho),
+                     "\n\n# of Reps:\n~3000\n\nVar ω² and\nRescaled:"
+        )
+    ),
+    fill = guide_legend(
+      title = paste0("Fixed\nParams:\nT = ", unique(data$Tfull),
+                     "\nβ = ", unique(data$beta_free),
+                     "\nρ = ", unique(data$rho),
+                     "\n\n# of Reps:\n~3000\n\nVar ω² and\nRescaled:"
+      )
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = expression("CI Comparison for Mean β1 Estimates vs. Sample Size (N)"),
+    x = "Sample Size (N)",
+    y = "Coverage Probability"
+  ) +
+  coord_cartesian(ylim = c(0.5, 1)) + 
+  geom_hline(yintercept = 0.95, linetype = "dotted", color = "black")
+
+# ----
+
+
+
