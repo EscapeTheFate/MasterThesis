@@ -15,32 +15,6 @@ library(future.apply)
 
 # Data-Generating-Process Structure
 
-check_if_stationary <- function(rho){
-  if(!is.vector(rho)){
-    rho = as.vector(rho)
-  }
-  dim = length(rho)
-  if(dim == 1){
-    if(abs(rho[1]) < 1){
-      return(T)
-    }
-    else{
-      return(F)
-    }
-  }
-  if(dim == 2){
-    if(abs(rho[2]) < 1 & (rho[1] + rho[2]) < 1 & (rho[2] - rho[1]) < 1){
-      return(T)
-    }
-    else{
-      return(F)
-    }
-  }
-  else{
-    return("Error: Only up to AR(2) is specified")
-  }
-}
-
 create_grid <- function(...) {
   vars <- list(...)
   var_names <- sapply(substitute(list(...))[-1], deparse)
@@ -69,7 +43,7 @@ draw_simulation_data <- function(Tfull, N, quest, rho, system){
   
   # Obtain utilities for each choice occasion for individual 1
   U = matrix(0, nrow = Tp)
-  U = X %*% system$beta + X[,c(1:lRE)] %*% gam + LG %*% rnorm(dim(LG)[2])
+  U = X %*% system$beta + X[,c(1:lRE)] %*% gam + LG %*% rnorm(dim(LG)[2]) # Don't forget: X[,c(1:lRE)] %*% gam, since RE coef holds for an individual over all periods
   
   # Choose appropriate alternative by utility value
   y = U*0
@@ -180,8 +154,8 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
         switch(return_val,
                "summary" = summary(Rprob_mod),
                "theta" = replace(Rprob_mod$theta, 2, Rprob_mod$theta[2]^2), # replace second entry (omega) by delta method
-               "var" = replace(diag(Rprob_mod$vv)^2, 2, 4*Rprob_mod$theta[2]^2*diag(Rprob_mod$vv)[2]), # replace second entry (omega) by delta method
-               "sd" = replace(sqrt(diag(Rprob_mod$vv)), 2, sqrt(4*Rprob_mod$theta[2]^2*diag(Rprob_mod$vv)[2])))
+               "var" = replace(diag(Rprob_mod$vv), 2, 4*Rprob_mod$theta[2]^2*diag(Rprob_mod$vv)[2]), # replace second entry (omega) by delta method, tau values are not adjusted (raw)
+               "sd" = replace(sqrt(diag(Rprob_mod$vv)), 2, sqrt(4*Rprob_mod$theta[2]^2*diag(Rprob_mod$vv)[2]))) #  replace second entry (omega) by delta method, tau values are not adjusted (raw)
       } else {
           # Omega is Var-Cov, d.h. für Vergleich entweder sd quadrieren oder var wurzeln 
           b = c(b_coef = Rprob_mod$theta[1], b_sd = sqrt(diag(Rprob_mod$vv))[1])
@@ -232,24 +206,23 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
   return(result)
 }
 
-# set.seed(1) ----
+# set.seed(1) # ----
 # get_simulation_estimates(Tfull = 5, # number of choice occasions (time)
 #                          N = 100, # individuals
 #                          quest = 1, # num of questions (master thesis is for now limited to 1)
 #                          beta_free = 1, # beta coefs; here: (free, fixed)
 #                          rho = 0.5, # rho in error AR(1)-process
 #                          omega_var = 0.5,
-#                          return_val = "summary", # if return should be something else
-#                          DontSkipFit = T, # If simulation 1 to K takes too long, 
-#                          timer = F)       # one may stop at k and may want to continue 
+#                          return_val = "", # if return should be something else
+#                          DontSkipFit = T, # If simulation 1 to K takes too long,
+#                          timer = F)       # one may stop at k and may want to continue
 #                                           # estimating at k+1, then the DGP of iteration
 #                                           # 1 to k will be reproduced without estimation (time-consuming),
-#                                           # to then continue estimating afterwards (don't 
+#                                           # to then continue estimating afterwards (don't
 #                                           # forget to pass on DontSkipFit = F for 1 to k)
 
 # Obtain error stats ------------------------------------------------------
-# To-Do:
-# - Slot in stability check infront of parameter grid
+
 
 get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var,
                                   return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
@@ -1108,10 +1081,58 @@ n_reps = c(500)
 beta_free = c(4)
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4)
-set.seed(326) # set.seed(329) starting from row 25, set.seed(334) starting from row 234
-(ind = which(parameters$N == 40 & parameters$Tfull == 4 & parameters$rho == -0.6 & parameters$omega_var == 0.0625))
-parameters = parameters[-c(1:223),]
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = setdiff(c(seq(from = 0, to = 4, by = 0.2)), c(0, 1, 2, 3, 4))
+omega_var = c(1)
+Tfull = c(4)
+set.seed(359)
+approx_match <- function(x, target, tol = 1e-8) {
+  abs(x-target) < tol
+}
+which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 3.6) & parameters$rho == 0.6)
+# set.seed(360) starting from row 28 (N=500, Tfull=4, beta=0.8, rho=0.6, omega=1)
+# set.seed(361) starting from row 43 (N=500, Tfull=4, beta=1.4, rho=0.9, omega=1)
+# set.seed(366) starting from row 105 (N=500, Tfull=4, beta=3.6, rho=0.6, omega=1)
+parameters = parameters[-c(1:104),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = setdiff(c(seq(from = 4, to = 5, by = 0.2)), c(0, 1, 2, 3, 4, 5))
+omega_var = c(1)
+Tfull = c(4)
+which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 4.8) & parameters$rho == -0.9)
+set.seed(367) # set.seed(371) starting from row 23 (N=500, Tfull=4, beta=4.8, rho=-0.9, omega=1)
+parameters = parameters[-c(1:22),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = 5
+omega_var = c(1)
+Tfull = c(2:4)
+set.seed(372) # set.seed(373) starting from row 20
+which(parameters$Tfull == 4 & approx_match(parameters$beta_free, 5) & parameters$rho == 0.3)
+parameters = parameters[-c(1:19),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = 5
+omega_var = c(2^2, 3^2, 4^2)
+Tfull = c(2:4)
+set.seed(374)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500) 
+n_reps = c(3000)
+beta_free = 5
+omega_var = c(0.25^2, 0.5^2, 0.75^2)
+Tfull = c(2:4)
+set.seed(376)
 
 #
 # True Variance calcs -----------------------------------------------------
@@ -1159,6 +1180,14 @@ beta_free = c(seq(from = 2.6, to = 3, by = 0.1))
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4)
 set.seed(80) # there is a note on Home PC with seed 76, but 80 was used here according to history
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000)
+n_reps = c(1)
+beta_free = c(seq(from = 3.1, to = 3.9, by = 0.1)) # c(0, 1, 2, 3, 4) Complete
+omega_var = c(2^2, 3^2)
+Tfull = c(2:4) 
+set.seed(391)
 
 # Fit grid and obtain results ---------------------------------------------
 
@@ -1379,7 +1408,7 @@ View(parameters %>% arrange(beta_free))
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(20000)
 n_reps = c(1)
-beta_free = c(seq(from = 0, to = 3, by = 0.1))
+beta_free = c(seq(from = 3.1, to = 3.9, by = 0.1)) # c(0, 1, 2, 3, 4) Complete
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(2:4) 
 (parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
@@ -1439,8 +1468,63 @@ Tfull = c(2:4)
 nrep_samplesizes = c(500, 3000)
 (parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
+# For additional N = 500 simulation that are helpful for NMSE plots
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500)
+n_reps = c(3000, 0)
+beta_free = setdiff(c(seq(from = 0, to = 4, by = 0.2)), c(0, 1, 2, 3, 4))
+omega_var = c(0.25^2, 0.5^2, 0.75^2, 1, 2^2, 3^2, 4^2)
+Tfull = c(2:4) 
+nrep_samplesizes = c(3000)
+(parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500)
+n_reps = c(3000, 0)
+beta_free = c(0, 1, 2, 3, 4)
+omega_var = c(0.5^2, 0.75^2, 2^2, 3^2)
+Tfull = c(2:4) 
+nrep_samplesizes = c(3000)
+(parameters2 = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500)
+n_reps = c(500, 2500)
+beta_free = c(0, 1, 2, 3, 4)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4) 
+nrep_samplesizes = c(3000)
+(parameters3 = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
+parameters = rbind(parameters, parameters2, parameters3)
 
+# rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+# N = c(500)
+# n_reps = c(3000, 7000)
+# beta_free = c(0, 1, 2, 3, 4)
+# omega_var = c(0.25^2, 1, 4^2)
+# Tfull = c(2) 
+# nrep_samplesizes = c(10000)
+# (parameters = create_grid(n_reps, rho, nrep_samplesizes, beta_free, omega_var, Tfull, N))
 
+# 
+# list_of_dataframes <- list()
+# vector_of_missings <- c()
+# counter = 0
+# for (i in 1:dim(parameters)[1]){
+#   N = parameters$N[i]
+#   Tfull = parameters$Tfull[i]
+#   n_reps = parameters$n_reps[i]
+#   rho = parameters$rho[i]
+#   beta_free = parameters$beta_free[i]
+#   omega_var = parameters$omega_var[i]
+#   nreps_samplesize_number = parameters$nrep_samplesizes[i]
+#   
+#   filename1 <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps, 
+#                       "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
+#   if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename1))){
+#     print(paste0("In iteration: ", i, ", the nreps number of ", n_reps, " wasn't found"))
+#     counter = counter + 1
+#     vector_of_missings[counter] = i
+#   }
+# }
 
 # Recalc code where the 2500 and 500 (independent) model results are first combined,
 # then the first nrep_samplesizes number's are taken out of the 3000 (i.e. first 
@@ -1481,10 +1565,12 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                       "_rho=", rho, "_beta=", beta_free, "_omega=", omega_var, ".csv")
   
   if(!file.exists(paste0(getwd(), "/GitHub/MasterThesis/Estimate_Collection/", filename2))){
-    msg = paste0("Error occured in iteration:", i, " (filename2)")
-    print(msg)
-    counter = counter + 1
-    vector_of_missings[counter] = i
+    if(n_reps != 0){
+      msg = paste0("Error occured in iteration:", i, " (filename2)")
+      print(msg)
+      counter = counter + 1
+      vector_of_missings[counter] = i
+    }
     flag_2 = 1
   }
   if(parameters$nrep_samplesizes[i] != parameters$nrep_samplesizes[i+1]){
@@ -1525,7 +1611,7 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
   
   # Get estimates
   beta_estimates <- foo$beta
-  omega_estimates <- foo$omega
+  omega_estimates <- foo$omega # these are the variance entries of the matrix in summary, or in other words, variance used in RE distribution
   rho_estimates <- foo$rho
   
   beta_se = foo$beta_sd
@@ -1548,6 +1634,11 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
   avg_of_beta_se <- mean(beta_se)
   avg_of_omega_se <- mean(omega_se) # these are sd's of omega_var
   avg_of_rho_se <- mean(rho_se)
+  
+  # Model-based variance for NMSE calculations (that accounts for jenson's unequality this time...)
+  mb_var_of_beta_for_NMSE <- mean(beta_se^2)
+  mb_var_of_omega_for_NMSE <- mean(omega_se^2)
+  mb_var_of_rho_for_NMSE <- mean(rho_se^2)
   
   # Also, calculate standard deviation for standard deviation estimates of 
   # parameter estimates that will be used as a CI for avg estimate SD plots
@@ -1624,152 +1715,172 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
     true_var_large_N = true_var_large_N %>% select(beta_sd, omega_sd, rho_sd) # <----------------------------------------------------------------------------------
     true_var_large_N = true_var_large_N^2 # because info is SD so far
     names(true_var_large_N) = c("beta_true_var", "omega_true_var", "rho_true_var")
+    
+    # Coverage Probability using rescaled SE (so, fixed SE across replications used in CI)
+    
+    adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
+      return((N_old * unadjusted_true_var) / N_new)
+    }
+    
+    adjusted_true_var_for_now_small_N <- adjust_var_to_N(true_var_large_N, N_new = N, N_old = N_to_load)
+    alpha <- 0.05
+    
+    if(alpha > 0 & alpha < 1){
+      z_value <- qnorm(1-alpha/2) # z-score for desired CI level (here, 0.025 left and 0.975 right)
+    } else {
+      stop("Error: Alpha value invalid")
+    }
+    
+    # Standard errors (sqrt of adjusted variance)
+    adj_true_se_beta <- unlist(sqrt(adjusted_true_var_for_now_small_N[1]))
+    adj_true_se_omega <- unlist(sqrt(adjusted_true_var_for_now_small_N[2]))
+    adj_true_se_rho <- unlist(sqrt(adjusted_true_var_for_now_small_N[3]))
+    
+    # Construct CI around each estimate and check if it contains the true parameter
+    ci_beta_lower_rescaled <- beta_estimates - z_value * adj_true_se_beta
+    ci_beta_upper_rescaled <- beta_estimates + z_value * adj_true_se_beta
+    success_beta_rescaled <- sum(true_parameters[1] >= ci_beta_lower_rescaled & true_parameters[1] <= ci_beta_upper_rescaled)
+    failure_beta_rescaled <- length(beta_estimates) - success_beta_rescaled
+    
+    ci_omega_lower_rescaled <- omega_estimates - z_value * adj_true_se_omega
+    ci_omega_upper_rescaled <- omega_estimates + z_value * adj_true_se_omega
+    success_omega_rescaled <- sum(true_parameters[2] >= ci_omega_lower_rescaled & true_parameters[2] <= ci_omega_upper_rescaled)
+    failure_omega_rescaled <- length(omega_estimates) - success_omega_rescaled
+    
+    ci_rho_lower_rescaled <- rho_estimates - z_value * adj_true_se_rho
+    ci_rho_upper_rescaled <- rho_estimates + z_value * adj_true_se_rho
+    success_rho_rescaled <- sum(true_parameters[3] >= ci_rho_lower_rescaled & true_parameters[3] <= ci_rho_upper_rescaled)
+    failure_rho_rescaled <- length(rho_estimates) - success_rho_rescaled
+    
+    # Obtain uncertainty (upper and lower) of CI-overlap result by normal approximation
+    eps = 1e-10
+    p_beta_rescaled = success_beta_rescaled/length(beta_estimates)
+    p_omega_rescaled = success_omega_rescaled/length(omega_estimates)
+    p_rho_rescaled = success_rho_rescaled/length(rho_estimates)
+    
+    binomial_norm_upper_beta_rescaled = p_beta_rescaled + z_value * sqrt( (p_beta_rescaled*(1-p_beta_rescaled) + eps)/length(beta_estimates) )
+    binomial_norm_upper_omega_rescaled = p_omega_rescaled + z_value * sqrt( (p_omega_rescaled*(1-p_omega_rescaled) + eps)/length(omega_estimates) )
+    binomial_norm_upper_rho_rescaled = p_rho_rescaled + z_value * sqrt( (p_rho_rescaled*(1-p_rho_rescaled) + eps)/length(rho_estimates) )
+    
+    binomial_norm_lower_beta_rescaled = p_beta_rescaled - z_value * sqrt( (p_beta_rescaled*(1-p_beta_rescaled) + eps)/length(beta_estimates) )
+    binomial_norm_lower_omega_rescaled = p_omega_rescaled - z_value * sqrt( (p_omega_rescaled*(1-p_omega_rescaled) + eps)/length(omega_estimates) )
+    binomial_norm_lower_rho_rescaled = p_rho_rescaled - z_value * sqrt( (p_rho_rescaled*(1-p_rho_rescaled) + eps)/length(rho_estimates) )
+    
+    # Now, do the same, but to obtain exact ones (by clopper and pearson)
+    binomial_exact_upper_beta_rescaled = 1 - qbeta(p = alpha/2, shape1 = length(beta_estimates) - success_beta_rescaled, shape2 = success_beta_rescaled + 1)
+    binomial_exact_upper_omega_rescaled = 1 - qbeta(p = alpha/2, shape1 = length(omega_estimates) - success_omega_rescaled, shape2 = success_omega_rescaled + 1)
+    binomial_exact_upper_rho_rescaled = 1 - qbeta(p = alpha/2, shape1 = length(rho_estimates) - success_rho_rescaled, shape2 = success_rho_rescaled + 1)
+    
+    binomial_exact_lower_beta_rescaled = 1 - qbeta(p = 1 - alpha/2, shape1 = length(beta_estimates) - success_beta_rescaled + 1, shape2 = success_beta_rescaled)
+    binomial_exact_lower_omega_rescaled = 1 - qbeta(p = 1 - alpha/2, shape1 = length(omega_estimates) - success_omega_rescaled + 1, shape2 = success_omega_rescaled)
+    binomial_exact_lower_rho_rescaled = 1 - qbeta(p = 1 - alpha/2, shape1 = length(rho_estimates) - success_rho_rescaled + 1, shape2 = success_rho_rescaled)
+    
+    # Compute Wilson Score Interval
+    wilson_ci <- function(p, n, z) {
+      denominator <- 1 + (z^2 / n)
+      center <- p + (z^2 / (2 * n))
+      margin <- z * sqrt((p * (1 - p) / n) + (z^2 / (4 * n^2)))
+      
+      lower <- (center - margin) / denominator
+      upper <- (center + margin) / denominator
+      
+      return(c(lower, upper))
+    }
+    
+    # Compute Wilson CI for all estimates
+    wilson_beta_rescaled <- wilson_ci(p_beta_rescaled, length(beta_estimates), z_value)
+    wilson_omega_rescaled <- wilson_ci(p_omega_rescaled, length(omega_estimates), z_value)
+    wilson_rho_rescaled <- wilson_ci(p_rho_rescaled, length(rho_estimates), z_value)
+    
+    ## Then, Coverage Probability using model-based SE (extracting SE from each iteration which is then used in CI)
+    # This is important because it may be of interest how large of a difference using one or the other is
+    
+    # Construct CI around each estimate and check if it contains the true parameter
+    ci_beta_lower <- beta_estimates - z_value * beta_se
+    ci_beta_upper <- beta_estimates + z_value * beta_se
+    success_beta <- sum(true_parameters[1] >= ci_beta_lower & true_parameters[1] <= ci_beta_upper)
+    failure_beta <- length(beta_estimates) - success_beta
+    
+    ci_omega_lower <- omega_estimates - z_value * omega_se
+    ci_omega_upper <- omega_estimates + z_value * omega_se
+    success_omega <- sum(true_parameters[2] >= ci_omega_lower & true_parameters[2] <= ci_omega_upper)
+    failure_omega <- length(omega_estimates) - success_omega
+    
+    ci_rho_lower <- rho_estimates - z_value * rho_se
+    ci_rho_upper <- rho_estimates + z_value * rho_se
+    success_rho <- sum(true_parameters[3] >= ci_rho_lower & true_parameters[3] <= ci_rho_upper)
+    failure_rho <- length(rho_estimates) - success_rho
+    
+    # Obtain uncertainty (upper and lower) of CI-overlap result by normal approximation
+    eps = 1e-10
+    p_beta = success_beta/length(beta_estimates)
+    p_omega = success_omega/length(omega_estimates)
+    p_rho = success_rho/length(rho_estimates)
+    
+    binomial_norm_upper_beta = p_beta + z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
+    binomial_norm_upper_omega = p_omega + z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
+    binomial_norm_upper_rho = p_rho + z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
+    
+    binomial_norm_lower_beta = p_beta - z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
+    binomial_norm_lower_omega = p_omega - z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
+    binomial_norm_lower_rho = p_rho - z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
+    
+    # Now, do the same, but to obtain exact ones (by clopper and pearson)
+    binomial_exact_upper_beta = 1 - qbeta(p = alpha/2, shape1 = length(beta_estimates) - success_beta, shape2 = success_beta + 1)
+    binomial_exact_upper_omega = 1 - qbeta(p = alpha/2, shape1 = length(omega_estimates) - success_omega, shape2 = success_omega + 1)
+    binomial_exact_upper_rho = 1 - qbeta(p = alpha/2, shape1 = length(rho_estimates) - success_rho, shape2 = success_rho + 1)
+    
+    binomial_exact_lower_beta = 1 - qbeta(p = 1 - alpha/2, shape1 = length(beta_estimates) - success_beta + 1, shape2 = success_beta)
+    binomial_exact_lower_omega = 1 - qbeta(p = 1 - alpha/2, shape1 = length(omega_estimates) - success_omega + 1, shape2 = success_omega)
+    binomial_exact_lower_rho = 1 - qbeta(p = 1 - alpha/2, shape1 = length(rho_estimates) - success_rho + 1, shape2 = success_rho)
+    
+    # Compute Wilson CI for all estimates
+    wilson_beta <- wilson_ci(p_beta, length(beta_estimates), z_value)
+    wilson_omega <- wilson_ci(p_omega, length(omega_estimates), z_value)
+    wilson_rho <- wilson_ci(p_rho, length(rho_estimates), z_value)
+    
   } else {
     msg = paste0("Error: TrueVariance DF file path inaccurate and/or file not found") 
     print(msg)
     cat("\n")
-    next
     
-    results_table <- data.frame(
-      n_reps = n_reps,
-      N = N,
-      Tfull = Tfull,
-      rho = rho,
-      beta = beta_free,
-      omega_var = omega_var,
-      
-      ci_lower_beta = NA,
-      ci_upper_beta = NA,
-      success_beta = NA,
-      failure_beta = NA,
-      p_beta = NA,
-      bino_ci_norm_lower_beta = NA,
-      bino_ci_exact_lower_beta = NA,
-      bino_ci_wilson_lower_beta = NA,
-      bino_ci_norm_upper_beta = NA,
-      bino_ci_exact_upper_beta = NA,
-      bino_ci_wilson_upper_beta = NA,
-      
-      ci_lower_omega = NA,
-      ci_upper_omega = NA,
-      success_omega = NA,
-      failure_omega = NA,
-      p_omega = NA,
-      bino_ci_norm_lower_omega = NA,
-      bino_ci_exact_lower_omega = NA,
-      bino_ci_wilson_lower_omega = NA,
-      bino_ci_norm_upper_omega = NA,
-      bino_ci_exact_upper_omega = NA,
-      bino_ci_wilson_upper_omega = NA,
-      
-      
-      ci_lower_rho = NA,
-      ci_upper_rho = NA,
-      success_rho = NA,
-      failure_rho = NA,
-      p_rho = NA,
-      bino_ci_norm_lower_rho = NA,
-      bino_ci_exact_lower_rho = NA,
-      bino_ci_wilson_lower_rho = NA,
-      bino_ci_norm_upper_rho = NA,
-      bino_ci_exact_upper_rho = NA,
-      bino_ci_wilson_upper_rho = NA,
-      row.names = NULL
-    )
+    wilson_rho = wilson_omega = wilson_beta = NA
+    binomial_exact_lower_beta = binomial_exact_lower_omega = binomial_exact_lower_rho = NA
+    binomial_exact_upper_beta = binomial_exact_upper_omega = binomial_exact_upper_rho = NA
+    binomial_norm_lower_beta = binomial_norm_lower_omega = binomial_norm_lower_rho = NA
+    binomial_norm_upper_beta = binomial_norm_upper_omega = binomial_norm_upper_rho = NA
+    p_beta = p_omega = p_rho = NA
+    success_rho = success_omega = success_beta = NA
+    failure_beta = failure_omega = failure_rho = NA
     
-    list_of_dataframes[[i]] <- results_table
-    
-    next
+    wilson_rho_rescaled = wilson_omega_rescaled = wilson_beta_rescaled = NA
+    binomial_exact_lower_beta_rescaled = binomial_exact_lower_omega_rescaled = binomial_exact_lower_rho_rescaled = NA
+    binomial_exact_upper_beta_rescaled = binomial_exact_upper_omega_rescaled = binomial_exact_upper_rho_rescaled = NA
+    binomial_norm_lower_beta_rescaled = binomial_norm_lower_omega_rescaled = binomial_norm_lower_rho_rescaled = NA
+    binomial_norm_upper_beta_rescaled = binomial_norm_upper_omega_rescaled = binomial_norm_upper_rho_rescaled = NA
+    p_beta_rescaled = p_omega_rescaled = p_rho_rescaled = NA
+    success_rho_rescaled = success_omega_rescaled = success_beta_rescaled = NA
+    failure_beta_rescaled = failure_omega_rescaled = failure_rho_rescaled = NA
+    adj_true_se_beta = adj_true_se_omega = adj_true_se_rho = NA
   }
   
   
-  # # Extract the correct info out of true var df
-  # true_var = dplyr::filter(true_var, rho == rho_to_filter,
-  #                          beta_coef == beta_to_filter,
-  #                          Tfull == Tfull_to_filter,
-  #                          omega_var == omega_to_filter)
-  
-  adjust_var_to_N <- function(unadjusted_true_var, N_new, N_old){
-    return((N_old*unadjusted_true_var)/N_new)
-  }
-  
-  adjusted_true_var_large_N <- adjust_var_to_N(true_var_large_N, N_new = N, N_old = N_to_load)
-  alpha = 0.05
-  
-  if(alpha > 0 & alpha < 1){
-    z_value = qnorm(1-alpha/2) # For different CIs
-  } else {
-    print("Error: Alpha value invalid")
-  }
-  
-  ci_lower <- true_parameters - z_value * sqrt(adjusted_true_var_large_N)
-  ci_lower <- unlist(ci_lower) # beta_true_var omega_true_var rho_true_var
-  
-  ci_upper <- true_parameters + z_value * sqrt(adjusted_true_var_large_N)
-  ci_upper <- unlist(ci_upper)
-  
-  # Check cuccess or failure for each parameter
-  success_beta <- sum(beta_estimates >= ci_lower[1] & beta_estimates <= ci_upper[1])
-  failure_beta <- length(beta_estimates) - success_beta
-  
-  success_omega <- sum(omega_estimates >= ci_lower[2] & omega_estimates <= ci_upper[2])
-  failure_omega <- length(omega_estimates) - success_omega
-  
-  success_rho <- sum(rho_estimates >= ci_lower[3] & rho_estimates <= ci_upper[3])
-  failure_rho <- length(rho_estimates) - success_rho
-  
-  # Obtain uncertainty (upper and lower) of CI-overlap result by normal approximation
-  eps = 1e-10
-  p_beta = success_beta/length(beta_estimates)
-  p_omega = success_omega/length(omega_estimates)
-  p_rho = success_rho/length(rho_estimates)
-  
-  binomial_norm_upper_beta = p_beta + z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
-  binomial_norm_upper_omega = p_omega + z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
-  binomial_norm_upper_rho = p_rho + z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
-  
-  binomial_norm_lower_beta = p_beta - z_value * sqrt( (p_beta*(1-p_beta) + eps)/length(beta_estimates) )
-  binomial_norm_lower_omega = p_omega - z_value * sqrt( (p_omega*(1-p_omega) + eps)/length(omega_estimates) )
-  binomial_norm_lower_rho = p_rho - z_value * sqrt( (p_rho*(1-p_rho) + eps)/length(rho_estimates) )
-  
-  # Now, do the same, but to obtain exact ones (by clopper and pearson)
-  binomial_exact_upper_beta = 1 - qbeta(p = alpha/2, shape1 = length(beta_estimates) - success_beta, shape2 = success_beta + 1)
-  binomial_exact_upper_omega = 1 - qbeta(p = alpha/2, shape1 = length(omega_estimates) - success_omega, shape2 = success_omega + 1)
-  binomial_exact_upper_rho = 1 - qbeta(p = alpha/2, shape1 = length(rho_estimates) - success_rho, shape2 = success_rho + 1)
-  
-  binomial_exact_lower_beta = 1 - qbeta(p = 1 - alpha/2, shape1 = length(beta_estimates) - success_beta + 1, shape2 = success_beta)
-  binomial_exact_lower_omega = 1 - qbeta(p = 1 - alpha/2, shape1 = length(omega_estimates) - success_omega + 1, shape2 = success_omega)
-  binomial_exact_lower_rho = 1 - qbeta(p = 1 - alpha/2, shape1 = length(rho_estimates) - success_rho + 1, shape2 = success_rho)
-  
-  # Compute Wilson Score Interval
-  wilson_ci <- function(p, n, z) {
-    denominator <- 1 + (z^2 / n)
-    center <- p + (z^2 / (2 * n))
-    margin <- z * sqrt((p * (1 - p) / n) + (z^2 / (4 * n^2)))
-    
-    lower <- (center - margin) / denominator
-    upper <- (center + margin) / denominator
-    
-    return(c(lower, upper))
-  }
-  
-  # Compute Wilson CI for all estimates
-  wilson_beta <- wilson_ci(p_beta, length(beta_estimates), z_value)
-  wilson_omega <- wilson_ci(p_omega, length(omega_estimates), z_value)
-  wilson_rho <- wilson_ci(p_rho, length(rho_estimates), z_value)
-  
+  # Combine everything in one dataframe and combine everything outside the loop
   
   list_of_dataframes[[i]] = data.frame(beta_bias = beta_bias, 
                                        avg_of_beta_se = avg_of_beta_se,
                                        sd_of_beta_se = sd_of_beta_se,
+                                       mb_var_of_beta_for_NMSE = mb_var_of_beta_for_NMSE,
                                        
                                        omega_bias = omega_bias,
                                        avg_of_omega_se = avg_of_omega_se,
                                        sd_of_omega_se = sd_of_omega_se,
+                                       mb_var_of_omega_for_NMSE = mb_var_of_omega_for_NMSE,
                                        
                                        rho_bias = rho_bias,
                                        avg_of_rho_se = avg_of_rho_se,
                                        sd_of_rho_se = sd_of_rho_se,
+                                       mb_var_of_rho_for_NMSE = mb_var_of_rho_for_NMSE,
                                        
                                        rho = rho,
                                        N = N,
@@ -1782,8 +1893,17 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                                        sd_of_omega_estimates = sd_of_omega_estimates,
                                        sd_of_rho_estimates = sd_of_rho_estimates,
                                        
-                                       ci_lower_beta = ci_lower[1],
-                                       ci_upper_beta = ci_upper[1],
+                                       se_of_beta_ci = adj_true_se_beta,
+                                       success_beta_rescaled = success_beta_rescaled,
+                                       failure_beta_rescaled = failure_beta_rescaled,
+                                       p_beta_rescaled = p_beta_rescaled,
+                                       bino_ci_norm_lower_beta_rescaled = binomial_norm_lower_beta_rescaled,
+                                       bino_ci_exact_lower_beta_rescaled = binomial_exact_lower_beta_rescaled,
+                                       bino_ci_wilson_lower_beta_rescaled = wilson_beta_rescaled[1],
+                                       bino_ci_norm_upper_beta_rescaled = binomial_norm_upper_beta_rescaled,
+                                       bino_ci_exact_upper_beta_rescaled = binomial_exact_upper_beta_rescaled,
+                                       bino_ci_wilson_upper_beta_rescaled = wilson_beta_rescaled[2],
+                                       
                                        success_beta = success_beta,
                                        failure_beta = failure_beta,
                                        p_beta = p_beta,
@@ -1794,8 +1914,18 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                                        bino_ci_exact_upper_beta = binomial_exact_upper_beta,
                                        bino_ci_wilson_upper_beta = wilson_beta[2],
                                        
-                                       ci_lower_omega = ci_lower[2],
-                                       ci_upper_omega = ci_upper[2],
+                                       
+                                       se_of_omega_ci = adj_true_se_omega,
+                                       success_omega_rescaled = success_omega_rescaled,
+                                       failure_omega_rescaled = failure_omega_rescaled,
+                                       p_omega_rescaled = p_omega_rescaled,
+                                       bino_ci_norm_lower_omega_rescaled = binomial_norm_lower_omega_rescaled,
+                                       bino_ci_exact_lower_omega_rescaled = binomial_exact_lower_omega_rescaled,
+                                       bino_ci_wilson_lower_omega_rescaled = wilson_omega_rescaled[1],
+                                       bino_ci_norm_upper_omega_rescaled = binomial_norm_upper_omega_rescaled,
+                                       bino_ci_exact_upper_omega_rescaled = binomial_exact_upper_omega_rescaled,
+                                       bino_ci_wilson_upper_omega_rescaled = wilson_omega_rescaled[2],
+                                       
                                        success_omega = success_omega,
                                        failure_omega = failure_omega,
                                        p_omega = p_omega,
@@ -1807,8 +1937,17 @@ for (i in (seq(from = 0, to = dim(parameters)[1], by = 2) + 1)){
                                        bino_ci_wilson_upper_omega = wilson_omega[2],
                                        
                                        
-                                       ci_lower_rho = ci_lower[3],
-                                       ci_upper_rho = ci_upper[3],
+                                       se_of_rho_ci = adj_true_se_rho,
+                                       success_rho_rescaled = success_rho_rescaled,
+                                       failure_rho_rescaled = failure_rho_rescaled,
+                                       p_rho_rescaled = p_rho_rescaled,
+                                       bino_ci_norm_lower_rho_rescaled = binomial_norm_lower_rho_rescaled,
+                                       bino_ci_exact_lower_rho_rescaled = binomial_exact_lower_rho_rescaled,
+                                       bino_ci_wilson_lower_rho_rescaled = wilson_rho_rescaled[1],
+                                       bino_ci_norm_upper_rho_rescaled = binomial_norm_upper_rho_rescaled,
+                                       bino_ci_exact_upper_rho_rescaled = binomial_exact_upper_rho_rescaled,
+                                       bino_ci_wilson_upper_rho_rescaled = wilson_rho_rescaled[2],
+                                       
                                        success_rho = success_rho,
                                        failure_rho = failure_rho,
                                        p_rho = p_rho,
@@ -1862,7 +2001,7 @@ View(combined_df[seq(from = 1, to = 57, by = 7),]) # compare various sample size
 View(combined_df[seq(from = 5230, to = 5286, by = 7),]) # compare various sample sizes for N = 125, rho = -0.9, T = 3, omega = 16
 
 # Save calculated dataframe
-write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v2.csv"), row.names = F)
+write.csv(combined_df, file = paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"), row.names = F)
 
 
 
