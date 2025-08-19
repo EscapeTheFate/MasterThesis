@@ -1,13 +1,12 @@
-# Load necessary package
 library(mvtnorm)
 
-# Set up grid of rho values
+
 rho_vals <- seq(0, 1, by = 0.001)
 
 # Function to compute choice probability for car
 compute_car_prob <- function(rho) {
   # Define mean vector for utility differences
-  mean_vec <- c(0, 0)  # Since utilities are purely random
+  mean_vec <- c(0, 0)  
   
   # Covariance matrix for utility differences:
   # Define V1 = ε_RedBus - ε_Car
@@ -21,14 +20,14 @@ compute_car_prob <- function(rho) {
                         rho + 1, 2), nrow = 2)
   
   # We compute: P(ε_Car > ε_RedBus and ε_Car > ε_BlueBus)
-  # == P(ε_RedBus - ε_Car < 0 and ε_BlueBus - ε_Car < 0)
-  # == P(V1 < 0, V2 < 0) = CDF of bivariate normal at (0,0)
+  #             P(ε_RedBus - ε_Car < 0 and ε_BlueBus - ε_Car < 0)
+  #             P(V1 < 0, V2 < 0) = CDF of bivariate normal at (0,0)
   prob <- pmvnorm(upper = c(0, 0), mean = mean_vec, sigma = sigma_mat)
   
   return(as.numeric(prob))
 }
 
-# Apply the function to each rho
+# apply to each rho
 results <- data.frame(
   rho = rho_vals,
   car_prob = sapply(rho_vals, compute_car_prob)
