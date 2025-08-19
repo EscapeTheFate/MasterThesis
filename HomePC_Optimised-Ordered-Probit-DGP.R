@@ -232,28 +232,26 @@ get_simulation_estimates <- function(Tfull, # number of choice occasions (time)
   return(result)
 }
 
-set.seed(1) ----
-get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
-                         N = 1000, # individuals
-                         quest = 1, # num of questions (master thesis is for now limited to 1)
-                         beta_free = 1, # beta coefs; here: (free, fixed)
-                         rho = 0.5, # rho in error AR(1)-process
-                         omega_var = 0.5,
-                         return_val = "summary", # if return should be something else
-                         timer = F,
-                         DontSkipFit = T) # If simulation 1 to K takes too long,
-                                # one may stop at k and may want to continue
-                                          # estimating at k+1, then the DGP of iteration
-                                          # 1 to k will be reproduced without estimation (time-consuming),
-                                          # to then continue estimating afterwards (don't
-                                          # forget to pass on DontSkipFit = F for 1 to k)
+# set.seed(1) ----
+# get_simulation_estimates(Tfull = 3, # number of choice occasions (time)
+#                          N = 1000, # individuals
+#                          quest = 1, # num of questions (master thesis is for now limited to 1)
+#                          beta_free = 1, # beta coefs; here: (free, fixed)
+#                          rho = 0.5, # rho in error AR(1)-process
+#                          omega_var = 0.5,
+#                          return_val = "summary", # if return should be something else
+#                          timer = F,
+#                          DontSkipFit = T) # If simulation 1 to K takes too long,
+#                                 # one may stop at k and may want to continue
+#                                           # estimating at k+1, then the DGP of iteration
+#                                           # 1 to k will be reproduced without estimation (time-consuming),
+#                                           # to then continue estimating afterwards (don't
+#                                           # forget to pass on DontSkipFit = F for 1 to k)
 
-get_simulation_estimates(Tfull, N, quest, beta_free, rho, omega_var = 4, return_val, timer, DontSkipFit)
-get_simulation_estimates(Tfull = 3, N = 1000, quest = 1, beta_free = 1, rho = 0.5, omega_var = 0.5, return_val = "summary", timer = F, DontSkipFit = T)
+# get_simulation_estimates(Tfull, N, quest, beta_free, rho, omega_var = 4, return_val, timer, DontSkipFit)
+# get_simulation_estimates(Tfull = 3, N = 1000, quest = 1, beta_free = 1, rho = 0.5, omega_var = 0.5, return_val = "summary", timer = F, DontSkipFit = T)
 
 # Obtain error stats ------------------------------------------------------
-# To-Do:
-# - Slot in stability check infront of parameter grid
 
 get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, omega_var,
                                   return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
@@ -390,8 +388,8 @@ get_error_and_averages <- function(n_reps, Tfull, N, quest = 1, beta_free, rho, 
               rho_sd_avg = rho_sd_avg))
 }
 
-set.seed(1) # ---------
-foo = get_error_and_averages(n_reps = 1, Tfull = 4, N = 2000, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.2^2, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
+# set.seed(1) # ---------
+# foo = get_error_and_averages(n_reps = 1, Tfull = 4, N = 2000, quest = 1, beta_free = 1, rho = 0.9, omega_var = 0.2^2, timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = F)
 
 ## Extract error and average sd for different models --------------------------
 
@@ -1333,6 +1331,22 @@ omega_var = c(1, 4^2)
 Tfull = c(3)
 set.seed(385)
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000) 
+n_reps = c(1)
+beta_free = seq(from = 3.1, to = 3.9, by = 0.1)
+omega_var = c(0.25^2, 1, 4^2)
+Tfull = c(2:4)
+set.seed(387) # set.seed(388) starting from row 494
+parameters = parameters[-c(1:493),]
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000) 
+n_reps = c(1)
+beta_free = seq(from = 3.1, to = 3.9, by = 0.1)
+omega_var = c(0.5^2, 0.75^2)
+Tfull = c(2:4)
+set.seed(389)
 
 rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 N = c(500) 
@@ -1340,6 +1354,30 @@ n_reps = c(7000)
 beta_free = 5
 omega_var = c(0.25^2, 1, 4^2)
 Tfull = c(4)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(300, 200, 150, 100, 80, 70, 50, 40, 30)
+n_reps = c(3000)
+beta_free = c(seq(from = 0, to = 1, by = 0.2), 2, 3, 4)
+omega_var = c(0.5^2, 0.75^2)
+Tfull = c(2:4)
+# Other order (T is last):
+which(parameters$N == 30 & parameters$Tfull == 2 & parameters$rho == 0.3 & parameters$omega_var == 0.5625 & parameters$beta_free == 0)
+(parameters = create_grid(rho, n_reps, beta_free, omega_var, N, Tfull))
+set.seed(393) # set.seed(394) starting from row 518 (last one: N=80, Tfull=2, beta=0.2, rho=0.6, omega=0.25, or i = 517)
+# set.seed(395) starting from row 557 (i = 557)
+# set.seed(396) starting from row 714 (last one: N=70, Tfull=2, beta=0.6, rho=0.6, omega=0.5625, or i = 713)
+# set.seed(397) starting from row 813 (last one: N=50, Tfull=2, beta=3, rho=0.9, omega=0.25, or i = 812)
+# set.seed(398) starting from row 944 (last one: N=40, Tfull=2, beta=4, rho=0.3, omega=0.25, or i = 943)
+# set.seed(399) starting from row 966 (last one: N=40, Tfull=2, beta=0.6, rho=0.6, omega=0.562, or i = 965)
+# set.seed(401) starting from row 1002 (last one: N=40, Tfull=2, beta=3, rho=0.9, omega=0.5625, or i = 1001)
+# set.seed(402) starting from row 1007 (last one: N=40, Tfull=2, beta=4, rho=0.3, omega=0.5625, or i = 1006)
+# set.seed(403) starting from row 1066 (last one: N=30, Tfull=2, beta=4, rho=-0.9, omega=0.25, or i = 1065)
+# set.seed(404) starting from row 1070 (last one:  N=30, Tfull=2, beta=4, rho=0.3, omega=0.25, or i = 1069)
+# set.seed(405) starting from row 1077 (last one: N=30, Tfull=2, beta=0, rho=0.3, omega=0.5625, or i = 1076)
+#  N=30, Tfull=2, beta=0.2, rho=0.6, omega=0.5625
+parameters = parameters[-c(1:1076),]
+
 
 #
 # True Variance calcs -----------------------------------------------------
@@ -1390,7 +1428,7 @@ set.seed(80) # there is a note on Home PC with seed 76, but 80 was used here acc
 
 # Fit grid and obtain results ---------------------------------------------
 
-(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
+#(parameters = create_grid(rho, n_reps, beta_free, omega_var, Tfull, N))
 
 # Fit models to grid
 error <- pmap(parameters, get_error_and_averages)

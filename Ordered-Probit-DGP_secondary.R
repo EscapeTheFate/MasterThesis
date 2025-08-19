@@ -459,6 +459,201 @@ get_error_and_averages_dgp2 <- function(n_reps, Tfull, N, quest = 1, beta_free, 
 #                        DontSkipFit = T, saveEstimates = T)
 
 
+# Fill up missing rows in simulations -------------------------------------
+fill_up_sims_dgp2 <- function(n_reps_upper_limit, Tfull, N, quest = 1, beta_free, rho, omega_var,
+                              return_val = "", timer_error = T, timer_data = F, DontSkipFit = T, saveEstimates = T){
+  
+  
+  filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", n_reps_upper_limit, 
+                     "_rho=", rho, "_beta1=", beta_free[1], "_beta2=", beta_free[2],
+                     "_omegab1=", omega_var[1,1], "_omegab2=", omega_var[2,2],
+                     "_omegacor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]), ".csv")
+  
+  if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/DGP2/Estimate_Collection"))){
+    old_path = getwd()
+    setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/DGP2/Estimate_Collection"))
+    sims = read.csv(filename)
+    num_of_failed_sims = sum(apply(sims, 1, function(x) any(is.na(x))))
+    if(num_of_failed_sims < 1){
+      message("All ", n_reps_upper_limit, " simulations were successful (", filename, ") --> Skipping fill up sims!")
+      cat("\n")
+      return(invisible(NULL))
+    }
+    message("A total of (", num_of_failed_sims, "/", n_reps_upper_limit, ") simulations failed (", filename, ")")
+    cat("\n")
+    setwd(dir = old_path)
+  }
+  
+  
+  if(timer_error){ 
+    parameterMappedTo <- paste0("N=", N, ", Tfull=", Tfull, ", beta=c(", toString(beta_free), ")", ", rho=", rho, ", omega=c(", toString(omega_var[lower.tri(omega_var, diag = TRUE)]),
+                                ", cor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]) ,"))")
+    msg = paste0("Fitting of Rprobit Models: ", parameterMappedTo)
+    tic(msg = msg)
+  }
+  
+  # === Helper function to detect success based on nlm_code ===
+  is_successful <- function(sim) {
+    if (is.null(sim)) return(FALSE)
+    if (!is.list(sim) || length(sim) < 7) return(FALSE)
+    nlm_code <- tryCatch(sim[[7]]["nlm_code"], error = function(e) NA)
+    return(!is.na(nlm_code) && nlm_code != 99)
+  }
+  
+  # === Safe simulation wrapper with built-in success check ===
+  safe_sim <- function() {
+    tryCatch({
+      sim <- get_simulation_estimates_dgp2(
+        Tfull, N, quest, beta_free, rho, omega_var, return_val, timer_data, DontSkipFit
+      )
+      if (is_successful(sim)) return(sim)
+      return(NULL)
+    }, error = function(e) NULL)
+  }
+  
+  # === Begin fill-up process ===
+  successful_fillups <- list()
+  still_needed <- num_of_failed_sims
+  plan(multisession)
+  
+  while (still_needed > 0) {
+    new_sims <- future_replicate(still_needed, safe_sim(), simplify = FALSE)
+    good_sims <- Filter(Negate(is.null), new_sims)
+    successful_fillups <- c(successful_fillups, good_sims)
+    still_needed <- num_of_failed_sims - length(successful_fillups)
+    message("Got ", length(good_sims), " successful replacements this round. Still need: ", still_needed)
+  }
+  
+  if(timer_error){
+    # toc()
+    foo = toc(quiet = TRUE)
+    elapsed_time = foo$toc - foo$tic
+    elapsed_minutes = round(elapsed_time/60, 2)
+    cat(paste0("Elapsed fitting time (n_reps=", n_reps, "): ", elapsed_minutes, " min, Parameters: ", parameterMappedTo, " , Finished: [", Sys.time(), "]\n"))
+  }
+  # Overview of sim_replications:
+  # - Rows = Parameter list in chronological order: (b, omega, rho, nlm_conv_code)
+  # - Columns = n_reps
+  
+  # Calculate convergence success rate and filter out non-successful coefficient estimates
+  sim_replications = successful_fillups
+  
+  conv_status <- sapply(sim_replications, function(x) x[[7]]["nlm_code"])
+  conv_success_index <- conv_status %in% c(1, 2, 3)
+  conv_failed_index <- conv_status %in% c(4, 5, 99) # code 99 for nlm crash
+  
+  if (sum(conv_failed_index) == 0 & DontSkipFit == TRUE) {
+    msg <- paste0(
+      "All nlm models (n_reps=", num_of_failed_sims, 
+      ") were successfully estimated (N=", N, 
+      ", Tfull=", Tfull, 
+      ", rho=", rho, 
+      ", beta=c(", toString(beta_free), ")", 
+      ", omega=c(", toString(omega_var[lower.tri(omega_var, diag = TRUE)]),
+      ", cor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]) ,"))"
+    )
+  } else {
+    if (!DontSkipFit) {
+      msg <- paste0(
+        "Skipped nlm model iterations (", num_of_failed_sims, 
+        ") (N=", N, 
+        ", Tfull=", Tfull, 
+        ", rho=", rho, 
+        ", beta=c(", toString(beta_free), ")",
+        ", omega=c(", toString(omega_var[lower.tri(omega_var, diag = TRUE)]),
+        ", cor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]) ,"))"
+      )
+    } else {
+      msg <- paste0(
+        "Some nlm models (", sum(conv_failed_index), "/", num_of_failed_sims, 
+        ") failed to converge (N=", N, 
+        ", Tfull=", Tfull, 
+        ", rho=", rho, 
+        ", beta=c(", toString(beta_free), ")", 
+        ", omega=c(", toString(omega_var[lower.tri(omega_var, diag = TRUE)]),
+        ", cor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]) ,"))"
+      )
+    }
+  }
+  print(msg)
+  cat("\n")
+  
+  if(saveEstimates){
+    filename <- paste0("ErrAvgSD_N=", N, "_Tfull=", Tfull, "_nreps=", num_of_failed_sims, 
+                       "_rho=", rho, "_beta1=", beta_free[1], "_beta2=", beta_free[2],
+                       "_omegab1=", omega_var[1,1], "_omegab2=", omega_var[2,2],
+                       "_omegacor=", extract_rho_vector(omega_var[1,1], omega_var[2,1], omega_var[2,2]), ".csv")
+    
+    # Get estimates and build dataframe at the same time (not as before), calculate metrics later
+    df <- data.frame(
+      beta1       = sapply(sim_replications, function(x) x[[1]]["b1_coef"]),
+      beta1_sd    = sapply(sim_replications, function(x) x[[1]]["b1_sd"]),
+      beta2       = sapply(sim_replications, function(x) x[[2]]["b2_coef"]),
+      beta2_sd    = sapply(sim_replications, function(x) x[[2]]["b2_sd"]),
+      omega_b1    = sapply(sim_replications, function(x) x[[3]]["omega_b1_coef"]),
+      omega_b1_sd = sapply(sim_replications, function(x) x[[3]]["omega_b1_sd"]),
+      omega_b2    = sapply(sim_replications, function(x) x[[4]]["omega_b2_coef"]),
+      omega_b2_sd = sapply(sim_replications, function(x) x[[4]]["omega_b2_sd"]),
+      omega_cov   = sapply(sim_replications, function(x) x[[5]]["omega_cov_coef"]),
+      omega_cov_sd= sapply(sim_replications, function(x) x[[5]]["omega_cov_sd"]),
+      rho         = sapply(sim_replications, function(x) x[[6]]["rho_coef"]),
+      rho_sd      = sapply(sim_replications, function(x) x[[6]]["rho_sd"]),
+      conv_code   = conv_status
+    )
+    
+    omega_cor_estimates <- extract_rho_vector(
+      df$omega_b1, df$omega_cov, df$omega_b2
+    )
+    df$omega_cor <- extract_rho_vector(df$omega_b1, df$omega_cov, df$omega_b2)
+    
+    for (i in 1:6){
+      # Extract (raw) tau_i + it's (raw) sd (so, just sqrt of diagonal varcov-mat) in iteration i
+      correct_tau = paste0("tau_coef", i)
+      correct_tau_sd = paste0("tau_sd", i)
+      
+      tau_i_estimates <- sapply(sim_replications, function(x) x[[8]][correct_tau])
+      tau_i_sd <- sapply(sim_replications, function(x) x[[8]][correct_tau_sd])
+      
+      old_col_count = dim(df)[2]
+      df = cbind(df, tau_i_estimates, tau_i_sd)
+      names(df)[(old_col_count+1):(old_col_count+2)] = c(paste0("tau", i), paste0("tau", i, "_sd"))
+    }
+    
+    if(N == 10000 | N == 20000){
+      if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/DGP2/Fill_ups"))){
+        old_path = getwd()
+        setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/DGP2/Fill_ups"))
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
+        print(msg)
+        setwd(dir = old_path)
+      } else {
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+        print(msg)
+      }
+      
+    } else {
+      if(file.exists(paste0(getwd(),"/GitHub/MasterThesis/DGP2/Fill_ups"))){
+        old_path = getwd()
+        setwd(dir = paste0(getwd(),"/GitHub/MasterThesis/DGP2/Fill_ups"))
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @ ", getwd()) 
+        print(msg)
+        setwd(dir = old_path)
+      } else {
+        write.csv(df, file = filename, row.names = F)
+        msg = paste0("Estimates saved: ", filename, " @: ", getwd()) 
+        print(msg)
+      }
+    }
+    cat("\n")
+  }
+}
+
+
+
+
 ## Extract error and average sd for different models --------------------------
 
 # Define grid level to map get_error on (before on all pcs):
@@ -473,12 +668,182 @@ alpha_3 = c(1) # var(beta_2)
 rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
 set.seed(500) 
 
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2) # var(beta_1)
+alpha_3 = c(1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(503) # set.seed(504) starting from row 149 (last one: N=300, Tfull=2, beta=c(1, 1), rho=-0.9, omega=c(0.0625, -0.225, 1, cor=-0.9))
+# set.seed(505) starting from row 233 (last one: N=300, Tfull=2, beta=c(1, 1), rho=-0.9, omega=c(0.0625, 0.075, 1, cor=0.3))
+# set.seed(506) starting from row 248 (last one: N=300, Tfull=2, beta=c(1, 1), rho=-0.6, omega=c(0.5625, 0.225, 1, cor=0.3))
+# set.seed(507) starting from row 266 (last one: ErrAvgSD_N=300_Tfull=2_nreps=1500_rho=0.6_beta1=1_beta2=1_omegab1=0.25_omegab2=1_omegacor=0.6)
+# set.seed(508) starting from row 591 (last one: N=500, Tfull=3, beta=c(1, 1), rho=-0.6, omega=c(0.0625, -0.225, 1, cor=-0.9))
+# set.seed(509) starting from row 740 (last one: N=300, Tfull=3, beta=c(1, 1), rho=0, omega=c(0.0625, -0.225, 1, cor=-0.9))
+# set.seed(510) starting from row 906 (N=200, Tfull=3, beta=c(1, 1), rho=-0.6, omega=c(0.0625, -0.15, 1, cor=-0.6))
+# set.seed(511) starting from row 1367 (last one: N=300, Tfull=4, beta=c(1, 1), rho=-0.9, omega=c(0.0625, -0.075, 1, cor=-0.3))
+# set.seed(513) starting from row 1452 (last one: ErrAvgSD_N=300_Tfull=4_nreps=1500_rho=-0.6_beta1=1_beta2=1_omegab1=0.0625_omegab2=1_omegacor=0.9, or i = 1452)
+# set.seed(515) starting from row 1619 
+which(parameters$rho == -0.6 & parameters$Tfull == 4 & parameters$alpha_3 == 1 & parameters$alpha_1 == 0.0625 & parameters$rho_beta == 0.9 & parameters$N == 300)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2) # var(beta_1)
+alpha_3 = c(0.75^2) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(516) # set.seed(518) starting from row 593 
+# set.seed(520) starting from row 1157
+# set.seed(521) starting from row 1179
+# set.seed(523) starting from row 1180 # 1181 is skipped because no seed worked out of 10
+# set.seed(524) starting from row 1182
+# set.seed(525) starting from row 1325
+# set.seed(526) starting from row 1327
+# set.seed(530) starting from row 1328
+# set.seed(531) starting from row 1331
+# set.seed(533) starting from row 1475
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2) # var(beta_1) , alpha_1 = 1 und alpha_2 = 0.5^2 on other pc
+alpha_3 = c(0.5^2) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(534) # set.seed(535) starting from row 431
+# set.seed(536) starting from row 854
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2) # var(beta_1) , alpha_1 = 1 und alpha_2 = 0.5^2 on other pc
+alpha_3 = c(0.25^2) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(537) # set.seed(538) starting from row 131
+# set.seed(540) starting from row 917
+# set.seed(544) starting from row 1736 (not finished yet) (last one: ErrAvgSD_N=100_Tfull=4_nreps=1500_rho=0.6_beta1=1_beta2=1_omegab1=0.25_omegab2=0.0625_omegacor=0.6 or i=1735)
+# set.seed(545) starting from row 1757 (last one: 1756)
+which(parameters$rho == 0.6 & parameters$Tfull == 4 & parameters$alpha_3 == 0.0625 & parameters$alpha_1 == 0.25 & parameters$rho_beta == 0.9 & parameters$N == 100)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(1) # var(beta_1) , alpha_1 = 1 und alpha_2 = 0.5^2 on other pc
+alpha_3 = c(0.25^2) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(546) # set.seed(547) starting from row 53
+# set.seed(548) starting from row 148
+# set.seed(549) starting from row 154
+# set.seed(550) starting from row 156
+# set.seed(552) starting from row 190
+# set.seed(553) starting from row 485 (last one before crash: ErrAvgSD_N=300_Tfull=4_nreps=1500_rho=-0.9_beta1=1_beta2=1_omegab1=1_omegab2=0.0625_omegacor=0.9, or i = 486)
+# last one before crash: ErrAvgSD_N=300_Tfull=4_nreps=1500_rho=-0.9_beta1=1_beta2=1_omegab1=1_omegab2=0.0625_omegacor=0.9
+which(parameters$rho == -0.9 & parameters$Tfull == 4 & parameters$alpha_3 == 0.0625 & parameters$alpha_1 == 1 & parameters$rho_beta == 0.9 & parameters$N == 300)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(500, 300, 200, 100) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2:4)
+alpha_1 = c(1) # var(beta_1) , alpha_1 = 1 und alpha_2 = 0.5^2 on other pc
+alpha_3 = c(0.5^2) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+set.seed(554) # starting from row 438 (1 to 437 were calced on laptop)
+# set.seed(555) starting from row 490 (last one: ErrAvgSD_N=300_Tfull=4_nreps=1500_rho=0.6_beta1=1_beta2=1_omegab1=1_omegab2=0.25_omegacor=0.9, or i = 489)
+which(parameters$rho == 0.6 & parameters$Tfull == 4 & parameters$alpha_3 == 0.25 & parameters$alpha_1 == 1 & parameters$rho_beta == 0.9 & parameters$N == 300)
+
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(20000) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1)
+beta1 = 1
+beta2 = 1
+Tfull = c(4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1) 
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # corr(beta_1, beta_2)
+set.seed(556) # i=61
+# set.seed(558) starting from i = 61
+# set.seed(559) starting from i = 86
+# set.seed(561) starting from row i = 331
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(80) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(2)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1) 
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # corr(beta_1, beta_2)
+set.seed(563) # set.seed(564) starting at i = 15
+# set.seed(565) starting at i = 22
+# set.seed(568) starting from 246
+# set.seed(569) starting from 507
+# set.seed(570) starting from 694
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(80) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(3)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1) 
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # corr(beta_1, beta_2)
+set.seed(571) # set.seed(573) starting from row 369 <--- need to re-calc 1 to 169 because I accidently overwrite with seed(574)
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(80) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1500)
+beta1 = 1
+beta2 = 1
+Tfull = c(4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1) 
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # corr(beta_1, beta_2)
+set.seed(575) # set.seed(576) starting from row 86
+
+rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+N = c(300) # c(20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150, 200, 300, 500, 1000) 
+n_reps = c(1501)
+beta1 = 1
+beta2 = 1
+Tfull = c(4)
+alpha_1 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_1) 
+alpha_3 = c(0.25^2, 0.5^2, 0.75^2, 1) # var(beta_2)
+rho_beta = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # corr(beta_1, beta_2)
+set.seed(577) # set.seed(578) starting from row 52
+# set.seed(579) starting from row 58
+# set.seed(580) starting from row 59
+# set.seed(581) starting from row 60
+# set.seed(582) starting from row 141
+# set.seed(583) starting from row 171 (last one: ErrAvgSD_N=300_Tfull=4_nreps=1501_rho=-0.6_beta1=1_beta2=1_omegab1=0.0625_omegab2=0.5625_omegacor=-0.6, or i = 170)
+# i =578
+which(parameters$rho == -0.6 & parameters$Tfull == 4 & parameters$alpha_3 == 0.5625 & parameters$alpha_1 == 0.0625 & parameters$rho_beta == -0.6 & parameters$N == 300)
+
+
 # Fit grid and obtain results ---------------------------------------------
 (parameters = create_grid(rho, n_reps, beta1, beta2, alpha_1, alpha_3, rho_beta, N, Tfull))
 
 # Iterate over parameter df dimension (different from DGP1 which was based on 
 # pmap due to legacy reasons of calc'ing metrics immediately and not afterwards)
-for (i in 1:dim(parameters)[1]){ 
+for (i in 171:dim(parameters)[1]){ 
   get_error_and_averages_dgp2(n_reps = parameters$n_reps[i],
                               Tfull = parameters$Tfull[i],
                               N = parameters$N[i],
