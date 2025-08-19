@@ -5,6 +5,7 @@ library(ggplot2)
 library(dplyr)
 library(readr)
 library(tidyverse)
+library(rlang)
 
 ## Define UI for application -------
 ui<- fluidPage(
@@ -1352,113 +1353,157 @@ print(p)
 # value is divided by the NMSE with respect to the same rho value?
 
 ## In-plot: Rho and Beta, Omega varies among plots ----
+what_param_to_plot = "rho" # choose between beta, omega, rho
+what_type_to_plot = "sd_of_param" # "sd_of_param" # other option: "sd_of_param"
+
+param_cols <- list(avg_of_param_se = c(beta = "avg_of_beta_se", omega = "avg_of_omega_se", 
+    rho = "avg_of_rho_se"), sd_of_param = c(beta = "sd_of_beta_estimates", 
+    omega = "sd_of_omega_estimates", rho = "sd_of_rho_estimates"))
+mse_col <- paste0(what_param_to_plot, "_mse")
+title_param <- switch(what_param_to_plot, beta = "Beta", omega = "ω²", rho = "Rho")
+
 plotted_omega = c(0.25^2, 0.5^2, 0.75^2, 1, 2^2, 3^2, 4^2)
-plotted_beta = c(rep.int(2, length(plotted_omega))) # reference beta used
+plotted_beta = c(2) # reference beta used
 plotted_T = 2 # T used for plots
-plotted_rho = 0 # reference rho used in additional plots
 
 for (i in 1:length(plotted_omega)){
-ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v4.csv"))
-# Choose a ref
-ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta[i], omega_var == plotted_omega[i], N == 500, n_reps == 3000)
+ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
 
-ref_df_filtered <- ref_df %>%
-  dplyr::select(rho, beta_mse, omega_mse, rho_mse, avg_of_beta_se, avg_of_omega_se, avg_of_rho_se) %>%
-  rename(
-    ref_beta_mse = beta_mse,
-    ref_omega_mse = omega_mse,
-    ref_rho_mse = rho_mse,
-    ref_avg_beta_se = avg_of_beta_se,
-    ref_avg_omega_se = avg_of_omega_se,
-    ref_avg_rho_se = avg_of_rho_se
-  )
+# Choose a ref
+ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta, omega_var == plotted_omega[i], N == 500)
 
 df_filtered <- df %>%
-  filter(Tfull == plotted_T, N == 500, n_reps == 3000, omega_var == plotted_omega[i])
+  filter(Tfull == plotted_T, N == 500, omega_var == plotted_omega[i])
 
-df_final <- df_filtered %>%
-  left_join(ref_df_filtered, by = "rho") %>%
-  mutate(
-    beta_mse = (beta_mse / avg_of_beta_se^2) / (ref_beta_mse / ref_avg_beta_se^2),
-    omega_mse = (omega_mse / avg_of_omega_se^2) / (ref_omega_mse / ref_avg_omega_se^2),
-    rho_mse   = (rho_mse   / avg_of_rho_se^2)   / (ref_rho_mse   / ref_avg_rho_se^2)
-  )
+if(what_type_to_plot == "sd_of_param"){
+  
+  ref_df_filtered <- ref_df %>%
+    dplyr::select(rho, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+    rename(
+      ref_beta_mse = beta_mse,
+      ref_omega_mse = omega_mse,
+      ref_rho_mse = rho_mse,
+      ref_beta_se = sd_of_beta_estimates,
+      ref_omega_se = sd_of_omega_estimates,
+      ref_rho_se = sd_of_rho_estimates
+    )
+  
+  df_final <- df_filtered %>%
+    left_join(ref_df_filtered, by = "rho") %>%
+    mutate(
+      beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+      omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+      rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+    )
+  
+  yaxis = c(0.95, 1.05)
+    
+  } else {
+  
+  ref_df_filtered <- ref_df %>%
+    dplyr::select(rho, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+    rename(
+      ref_beta_mse = beta_mse,
+      ref_omega_mse = omega_mse,
+      ref_rho_mse = rho_mse,
+      ref_beta_var = mb_var_of_beta_for_NMSE,
+      ref_omega_var = mb_var_of_omega_for_NMSE,
+      ref_rho_var = mb_var_of_rho_for_NMSE
+    )
+  
+  df_final <- df_filtered %>%
+    left_join(ref_df_filtered, by = "rho") %>%
+    mutate(
+      beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+      omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+      rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+    )
 
-ref_text <- paste0(
-  "N = ", ref_df$N, "\n",
-  "n_reps = ", ref_df$n_reps, "\n",
-  "Reference:\nbeta = ", ref_df$beta_free,
-  ", T = ", ref_df$Tfull,
-  ", rho = (-0.9, +0.9)",
-  ", omega = ", ref_df$omega_var, "\n",
-  "Non-reference filter:\nT = ", df_final$Tfull,
-  ", omega = ", df_final$omega_var
-)
+  yaxis = c(0.75, 1.5)
+  
+  }
 
-p <- ggplot(df_final, aes(x = rho, y = beta_mse, group = beta_free, color = beta_free)) + 
+p <- ggplot(df_final, aes(x = rho, y = !!sym(mse_col), group = beta_free, color = beta_free)) + 
   geom_line() +
   geom_point(size = 1) +
   theme_minimal() +
+  coord_cartesian(ylim = yaxis) +
   theme(
     legend.position = "right",
     plot.title = element_text(hjust = 0.5)
   ) + 
-  labs(title = "Relative NMSE Ranking for beta param vs. Rho",
+  labs(title = paste("Relative NMSE Ranking for", title_param, "param vs. Rho"),
        x = "Rho",
        y = "NMSE_i / NMSE_ref_i") +
-  coord_cartesian(ylim = c(0.5, 1.5)) +
   scale_x_continuous(breaks = unique(df$rho)) +
-  scale_color_gradient2(low = "blue", mid = "yellow", high = "red", midpoint = 2, name = "Beta") + 
-  #scale_color_gradient(low = "yellow", high = "red", name = "Beta") + 
-  annotate("text", x = min(df$rho), y = 0.55, 
-           label = ref_text, hjust = 0, vjust = 0, size = 3.5)
+  scale_color_gradient2(low = "blue", mid = "yellow", high = "red", midpoint = 2, name = "Beta") 
 print(p)
 }
 
 ## In-plot: Rho and Omega, Beta varies among plots ----
+what_type_to_plot = "sd_of_param" # "sd_of_param"
 plotted_omega = c(1)
 plotted_beta = c(0, 1, 2, 3, 4) # reference beta used
 plotted_T = 2
 
 for (i in 1:length(plotted_beta)){
-  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v4.csv"))
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
   # Choose a ref
-  ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta[i], omega_var == plotted_omega, N == 500, n_reps == 3000)
-  
-  ref_df_filtered <- ref_df %>%
-    dplyr::select(rho, beta_mse, omega_mse, rho_mse, avg_of_beta_se, avg_of_omega_se, avg_of_rho_se) %>%
-    rename(
-      ref_beta_mse = beta_mse,
-      ref_omega_mse = omega_mse,
-      ref_rho_mse = rho_mse,
-      ref_avg_beta_se = avg_of_beta_se,
-      ref_avg_omega_se = avg_of_omega_se,
-      ref_avg_rho_se = avg_of_rho_se
-    )
+  ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta[i], omega_var == plotted_omega, N == 500)
   
   df_filtered <- df %>%
-    filter(Tfull == plotted_T, N == 500, n_reps == 3000, beta_free == plotted_beta[i])
+    filter(Tfull == plotted_T, N == 500, beta_free == plotted_beta[i])
   
-  df_final <- df_filtered %>%
-    left_join(ref_df_filtered, by = "rho") %>%
-    mutate(
-      beta_mse = (beta_mse / avg_of_beta_se^2) / (ref_beta_mse / ref_avg_beta_se^2),
-      omega_mse = (omega_mse / avg_of_omega_se^2) / (ref_omega_mse / ref_avg_omega_se^2),
-      rho_mse   = (rho_mse   / avg_of_rho_se^2)   / (ref_rho_mse   / ref_avg_rho_se^2)
-    )
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(rho, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "rho") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    
+    yaxis = c(0.8, 1.2)
+    
+  } else {
+    
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(rho, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "rho") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+    
+    yaxis = c(0.5, 1.5)
+  }
   
-  ref_text <- paste0(
-    "N = ", ref_df$N, "\n",
-    "n_reps = ", ref_df$n_reps, "\n",
-    "Reference:\nbeta = ", ref_df$beta_free,
-    ", T = ", ref_df$Tfull,
-    ", rho = (-0.9, +0.9)",
-    ", omega = ", ref_df$omega_var, "\n",
-    "Non-reference filter:\nT = ", df_final$Tfull,
-    ", Corresp. omega & rho, beta =", df_filtered$beta_free
-  )
   
-  p <- ggplot(df_final, aes(x = rho, y = beta_mse, group = factor(omega_var), color = factor(omega_var))) + 
+  p <- ggplot(df_final, aes(x = rho, y = !!sym(mse_col), group = factor(omega_var), color = factor(omega_var))) + 
     geom_line() +
     geom_point(size = 1) +
     theme_minimal() +
@@ -1466,10 +1511,10 @@ for (i in 1:length(plotted_beta)){
       legend.position = "right",
       plot.title = element_text(hjust = 0.5)
     ) + 
-    labs(title = "Relative NMSE Ranking for beta param vs. Rho & Omega",
+    labs(title = paste("Relative NMSE Ranking for", title_param, "param vs. Rho"),
          x = "Rho",
          y = "NMSE_i / NMSE_ref_i") +
-    coord_cartesian(ylim = c(0.5, 1.5)) +
+    coord_cartesian(ylim = yaxis) +
     scale_x_continuous(breaks = unique(df$rho)) +
     scale_color_manual(
       values = c( 
@@ -1482,56 +1527,423 @@ for (i in 1:length(plotted_beta)){
         "16"     = "#d73027"   # deep red
       ),,
       name = "Omega"
-    ) +
-    annotate("text", x = min(df$rho), y = 0.55, 
-             label = ref_text, hjust = 0, vjust = 0, size = 3.5)
+    ) 
   print(p)
 }
 
 ## In-plot: Beta and Omega, Rho varies among plots ----
+what_param_to_plot = "sd_of_param" # "sd_of_param"
 plotted_omega = c(1)
 plotted_rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) # reference rho used
 plotted_T = 2
 
 for (i in 1:length(plotted_rho)){
-  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v4.csv"))
-  # Choose a ref
-  ref_df = ref_df %>% filter(Tfull == plotted_T, rho == plotted_rho[i], omega_var == plotted_omega, N == 500, n_reps == 3000)
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
   
-  ref_df_filtered <- ref_df %>%
-    dplyr::select(beta_free, beta_mse, omega_mse, rho_mse, avg_of_beta_se, avg_of_omega_se, avg_of_rho_se) %>%
-    rename(
-      ref_beta_mse = beta_mse,
-      ref_omega_mse = omega_mse,
-      ref_rho_mse = rho_mse,
-      ref_avg_beta_se = avg_of_beta_se,
-      ref_avg_omega_se = avg_of_omega_se,
-      ref_avg_rho_se = avg_of_rho_se
-    )
+  # Choose a ref
+  ref_df = ref_df %>% filter(Tfull == plotted_T, rho == plotted_rho[i], omega_var == plotted_omega, N == 500)
   
   df_filtered <- df %>%
-    filter(Tfull == plotted_T, N == 500, n_reps == 3000, rho == plotted_rho[i])
+    filter(Tfull == plotted_T, N == 500, rho == plotted_rho[i])
   
-  df_final <- df_filtered %>%
-    left_join(ref_df_filtered, by = "beta_free") %>%
-    mutate(
-      beta_mse = (beta_mse / avg_of_beta_se^2) / (ref_beta_mse / ref_avg_beta_se^2),
-      omega_mse = (omega_mse / avg_of_omega_se^2) / (ref_omega_mse / ref_avg_omega_se^2),
-      rho_mse   = (rho_mse   / avg_of_rho_se^2)   / (ref_rho_mse   / ref_avg_rho_se^2)
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(beta_free, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "beta_free") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    
+    yaxis = c(0.925,1.125)
+    
+  } else {
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(beta_free, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "beta_free") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+    
+    yaxis = c(0.90,1.125)
+  }
+  
+  # ensure stable color mapping for ω²
+  df_final$omega_var <- factor(df_final$omega_var, levels = sort(unique(df_final$omega_var)))
+  
+  p <- ggplot(
+    df_final,
+    aes(x = beta_free,
+        y = !!sym(mse_col),
+        group = factor(omega_var),
+        color = factor(omega_var))
+  ) +
+    # lines & points with alpha set outside aes() so it won't show in legend
+    geom_line(alpha = 0.4) +
+    geom_point(size = 1, alpha = 0.4) +
+    
+    # smoother for non-reference ω²
+    geom_smooth(
+      data = subset(df_final, omega_var != 1),
+      method = "gam",
+      formula = y ~ s(x, bs = "tp", k = 4),
+      se = FALSE,
+      linewidth = 1
+    ) +
+    
+    # horizontal reference line at y = 1 in the ω² = 1 color
+    geom_segment(
+      data = data.frame(omega_var = factor(1, levels = levels(df_final$omega_var))),
+      aes(x = min(df_final$beta_free),
+          xend = max(df_final$beta_free),
+          y = 1, yend = 1,
+          color = omega_var),
+      inherit.aes = FALSE,
+      linewidth = 1,
+      linetype = "dashed"
+    ) +
+    
+    theme_minimal() +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(hjust = 0.5)
+    ) +
+    scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9,
+                          name = expression(omega^2), drop = FALSE) +
+    labs(
+      title = paste("Relative NMSE Ranking for", title_param, "Variance vs. Mean β Coefficient"),
+      x = "Mean Beta (β) Coefficient",
+      y = bquote("Relative NMSE ( "*NMSE[omega^2] / NMSE[omega^2==1]*")")
+    ) +
+    coord_cartesian(ylim = yaxis) +
+    scale_x_continuous(breaks = seq(from = 0, to = 4, by = 1)) +
+    
+    # your guide block, plus override.aes to keep legend symbols solid & opaque
+    guides(
+      color = guide_legend(
+        title = paste0("Fixed\nParams:\nT = ", unique(ref_df$Tfull),
+                       "\nN = ", unique(ref_df$N),
+                       "\nρ = ", unique(ref_df$rho),
+                       "\n\nReference:",
+                       "\nVar ω² = ", unique(ref_df$omega_var),
+                       "\n\n# of Reps:\n~3000\n\nVar ω²:"
+        ),
+        override.aes = list(alpha = 1, size = 1.5, linetype = "solid")
+      ),
+      fill = guide_legend(
+        title = paste0("Fixed\nParams:\nT = ", unique(ref_df$Tfull),
+                       "\nN = ", unique(ref_df$N),
+                       "\nρ = ", unique(ref_df$rho),
+                       "\n\n# of Reps:\n~3000\n\nVar ω²:"
+        )
+      )
     )
   
-  ref_text <- paste0(
-    "N = ", ref_df$N, "\n",
-    "n_reps = ", ref_df$n_reps, "\n",
-    "Reference:\nbeta = (0, 4)",
-    ", T = ", ref_df$Tfull,
-    ", rho = ", ref_df$rho,
-    ", omega = ", ref_df$omega_var, "\n",
-    "Non-reference filter:\nT = ", df_final$Tfull,
-    ", rho = ", ref_df$rho, ", Corresp. Omega"
-  )
+  plot(p)
   
-  p <- ggplot(df_final, aes(x = beta_free, y = beta_mse, group = factor(omega_var), color = factor(omega_var))) + 
+}
+
+## In-plot: Beta and Rho, Omega varies among plots ----
+what_param_to_plot = "sd_of_param" # "sd_of_param"
+plotted_omega = c(0.25^2, 0.5^2, 0.75^2, 1, 2^2, 3^2, 4^2)
+plotted_rho = c(0) # reference rho used
+plotted_T = 2
+
+for (i in 1:length(plotted_omega)){
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+  # Choose a ref
+  ref_df = ref_df %>% filter(Tfull == plotted_T, rho == plotted_rho, omega_var == plotted_omega[i], N == 500)
+  
+  df_filtered <- df %>%
+    filter(Tfull == plotted_T, N == 500, omega_var == plotted_omega[i])
+  
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(beta_free, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "beta_free") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    
+    yaxis = c(0.9,1.08)
+    
+  } else {
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(beta_free, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "beta_free") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+    
+    yaxis = c(0.90,1.125)
+  }
+  
+  brks <- round(seq(-0.9, 0.9, by = 0.3), 1)
+  
+  x_min <- min(df_final$beta_free, na.rm = TRUE)
+  x_max <- max(df_final$beta_free, na.rm = TRUE)
+  
+  p <- ggplot(
+    df_final,
+    aes(x = beta_free, y = !!sym(mse_col), group = rho, color = rho)
+  ) +
+    geom_line(alpha = 0.4, show.legend = TRUE) +
+    geom_point(size = 1, alpha = 0.4, show.legend = FALSE) +
+    
+    geom_smooth(
+      data = subset(df_final, rho != 0),
+      method = "gam",
+      formula = y ~ s(x, bs = "tp", k = 4),
+      se = FALSE,
+      linewidth = 1,
+      show.legend = FALSE
+    ) +
+    
+    geom_segment(
+      data = data.frame(rho = 0),
+      aes(x = x_min, xend = x_max, y = 1, yend = 1, color = rho),
+      inherit.aes = FALSE,
+      linewidth = 1,
+      linetype = "dashed",
+      show.legend = FALSE
+    ) +
+    
+    theme_minimal() +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(hjust = 0.5)
+    ) +
+    labs(
+      title = paste("Relative NMSE Ranking for", title_param, "Variance vs. Mean β Coefficient"),
+      x = "Mean Beta (β) Coefficient",
+      y = bquote("Relative NMSE ( "*NMSE[rho] / NMSE[rho==0]*")")
+    ) +
+    coord_cartesian(ylim = yaxis) +
+    scale_x_continuous(breaks = seq(0, 4, by = 1)) +
+    
+    scale_color_gradientn(
+      colors = c(
+        "#08306B", "#4EA3D9",
+        "#2FBF71",
+        "#F9D057", "#D7191C"
+      ),
+      values = scales::rescale(c(-0.9, -0.3, 0, 0.3, 0.9)),
+      limits = c(-0.9, 0.9),
+      breaks = brks,
+      labels = scales::label_number(accuracy = 0.1, trim = TRUE),
+      name = expression(rho)
+    ) +
+    
+    guides(
+      color = guide_colorbar(
+        title = paste0(
+          "Fixed\nParams:\nT = ", unique(df_final$Tfull),
+          "\nN = ", unique(df_final$N),
+          "\nω² = ", unique(df_final$omega_var),
+          "\n\nReference:\nAR(1) ρ = ", unique(ref_df$rho),
+          "\n\n# of Reps:\n~3000\n\nAR(1) ρ:\n"
+        ),
+        barheight = grid::unit(140, "pt"),
+        barwidth  = grid::unit(10,  "pt")
+      )
+    )
+  
+  print(p)
+}
+
+## In-plot: Omega and Beta, Rho varies among plots ----
+what_param_to_plot = "sd_of_param" # "sd_of_param"
+plotted_beta = 2 # reference
+plotted_T = 2 # T used for plots
+plotted_rho = c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9) 
+
+for (i in 1:length(plotted_rho)){
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+  # Choose a ref
+  ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta, rho == plotted_rho[i], N == 500)
+  
+  df_filtered <- df %>%
+    filter(Tfull == plotted_T, N == 500, rho == plotted_rho[i])
+  
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    yaxis = c(0.95,1.15)
+    
+  } else {
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+    
+    yaxis = c(0.95,1.15)
+  }
+  
+  p <- ggplot(df_final, aes(x = factor(omega_var), y = !!sym(mse_col), group = beta_free, color = beta_free)) + 
+    geom_line(alpha = 0.2) +
+    geom_point(size = 1, alpha = 0.2) +
+    theme_minimal() +
+    theme(
+      legend.position = "right",
+      plot.title = element_text(hjust = 0.5)
+    ) + 
+    labs(title = paste("Relative NMSE Ranking for", title_param, "param vs. Rho"),
+         x = "Rho",
+         y = "NMSE_i / NMSE_ref_i") +
+    coord_cartesian(ylim = yaxis) +
+    scale_x_discrete(name = "Omega Variance") +
+    scale_color_gradient2(low = "blue", mid = "yellow", high = "red", midpoint = 2, name = "Beta") + 
+    #scale_color_gradient(low = "yellow", high = "red", name = "Beta") + 
+    geom_smooth(method = "loess", se = FALSE, span = 1)
+  print(p)
+}
+
+## In-plot: Omega and Rho, Beta varies among plots ----
+# This plot is actually useless as variation is just too high, as can be easily
+# spotted prior to this (see: plot 3 & 4)
+what_param_to_plot = "sd_of_param" # "sd_of_param"
+plotted_beta = c(0, 0.4, 0.8, 1.2, 1.6, 2, 2.4, 2.8, 3.2, 3.6, 4)
+plotted_T = 2 # T used for plots
+plotted_rho = c(0) 
+
+for (i in 1:length(plotted_beta)){
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+  # Choose a ref
+  ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta[i], rho == plotted_rho, N == 500, n_reps == 3000)
+  
+  df_filtered <- df %>%
+    filter(Tfull == plotted_T, N == 500, n_reps == 3000, beta_free == plotted_beta[i])
+  
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    yaxis = c(0.95,1.15)
+    
+  } else {
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+    
+    yaxis = c(0.95,1.15)
+  }
+  
+  p <- ggplot(df_final, aes(x = factor(omega_var), y = !!sym(mse_col), group = rho, color = rho)) + 
     geom_line() +
     geom_point(size = 1) +
     theme_minimal() +
@@ -1539,81 +1951,18 @@ for (i in 1:length(plotted_rho)){
       legend.position = "right",
       plot.title = element_text(hjust = 0.5)
     ) + 
-    labs(title = "Relative NMSE Ranking for beta param vs. Beta & Omega",
-         x = "Beta",
+    labs(title = paste("Relative NMSE Ranking for", title_param, "param vs. Rho"),
+         x = "Rho",
          y = "NMSE_i / NMSE_ref_i") +
-    coord_cartesian(ylim = c(0.75, 1.25)) +
-    scale_x_continuous(breaks = unique(df$beta_free)) +
-    scale_color_manual(
-      values = c( 
-        "0.0625" = "purple",  
-        "0.25"   = "#2166ac",  # deep blue
-        "0.5625" = "#67a9cf",  # light blue
-        "1"      = "#ffff33",  # bright yellow (midpoint)
-        "4"      = "#fdae61",  # orange
-        "9"      = "#f46d43",  # red-orange
-        "16"     = "#d73027"   # deep red
-      ),
-      name = "Omega"
-    ) +
-    annotate("text", x = min(df$beta_free), y = 0.8, 
-             label = ref_text, hjust = 0, vjust = 0, size = 3.5)
+    coord_cartesian(ylim = c(0.95, 1.1)) +
+    scale_x_discrete(name = "Omega Variance") +
+    scale_color_gradient2(low = "blue", mid = "yellow", high = "red", midpoint = 0, name = "Rho") 
   print(p)
 }
 
-# Build onto previous plot: -----------------------------------------------
-# This plot uses the wrong reference
-df_final_non_ref = df_final # %>% filter(beta_free != unique(ref_df$beta_free)) #%>% filter(rho %in% c(-0.9, -0.6, -0.3, 0))
-
-
-p <- ggplot(df_final_non_ref, aes(x = beta_free, y = beta_mse, group = rho, color = rho)) + 
-  geom_line() +
-  geom_point(size = 1) +
-  theme_minimal() +
-  theme(
-    legend.position = "right",
-    plot.title = element_text(hjust = 0.5)
-  ) + 
-  labs(title = "Relative NMSE Ranking for beta param vs. Beta",
-       x = "Beta",
-       y = "NMSE_i / NMSE_ref_i") +
-  coord_cartesian(ylim = c(0.75, 1.5)) +
-  scale_x_continuous(breaks = unique(df_final_non_ref$beta_free)) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  scale_color_gradientn(colors = c("blue", "purple", "red"), name = "Rho") + 
-  annotate("text", x = min(df_final_non_ref$beta_free), y = 0.8, 
-           label = ref_text, hjust = 0, vjust = 0, size = 3.5)
-print(p)
-
-# Use another color scheme?
-
-p <- ggplot(df_final_non_ref, aes(x = beta_free, y = beta_mse, group = rho, color = rho)) + 
-  geom_line() +
-  geom_point(size = 1) +
-  theme_minimal() +
-  theme(
-    legend.position = "right",
-    plot.title = element_text(hjust = 0.5)
-  ) + 
-  labs(title = "Relative NMSE Ranking for beta param vs. Beta",
-       x = "Beta",
-       y = "NMSE_i / NMSE_ref_i") +
-  coord_cartesian(ylim = c(0.75, 1.5)) +
-  scale_x_continuous(breaks = unique(df_final_non_ref$beta_free)) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "black") + 
-  scale_color_gradient2(
-    low = "red",      
-    mid = "yellow",     
-    high = "blue",     
-    midpoint = 0,
-    name = "Rho"
-  ) + 
-  annotate("text", x = min(df_final_non_ref$beta_free), y = 0.8, 
-           label = ref_text, hjust = 0, vjust = 0, size = 3.5)
-print(p)
-
 # . -----------------------------------------------------------------------
 # This one uses varying beta values as reference, so it divides by the NMSE_beta=i
+plotted_omega = 1
 ref_df2 = df2 = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v2.csv"))
 # Choose a ref
 ref_df2 = ref_df2 %>% filter(Tfull == 2, rho == plotted_rho, omega_var == plotted_omega, N == 500, n_reps == 3000)
@@ -2000,4 +2349,625 @@ p <- ggplot(df_final_non_ref, aes(x = beta_free, y = rho_mse, group = rho, color
   annotate("text", x = min(df_final_non_ref$beta_free), y = 0.8, 
            label = ref_text, hjust = 0, vjust = 0, size = 3.5)
 print(p)
+
+## Lets try something: ----
+plotted_omega = c(1) # reference omega used for plots
+plotted_beta = c(3, 4) # vary beta in color
+plotted_T = 2
+
+# 1) Average across beta at each (omega_var, rho)
+df_avg <- df_final %>%
+  group_by(omega_var, rho) %>%
+  summarise(
+    y_mean = mean(.data[[mse_col]], na.rm = TRUE),
+    n      = dplyr::n(),                     # how many betas at that rho
+    .groups = "drop"
+  )
+
+# 2) Plot raw points (optional), per-ρ means, and a smoother of the means
+ggplot() +
+  # raw points (optional; jitter a touch to see overlap)
+  geom_point(
+    data = df_final,
+    aes(x = rho, y = .data[[mse_col]], color = factor(omega_var), group = omega_var),
+    alpha = 0.25, size = 1.2, position = position_jitter(width = 0.01, height = 0)
+  ) +
+  # mean at each rho (one point per rho per omega_var)
+  geom_point(
+    data = df_avg,
+    aes(x = rho, y = y_mean, color = factor(omega_var), group = omega_var),
+    size = 2.2
+  ) +
+  # smoother over the per-rho means (optionally weighted by how many betas contributed)
+  geom_smooth(
+    data = df_avg,
+    aes(x = rho, y = y_mean, color = factor(omega_var), group = omega_var, weight = n),
+    method = "gam", formula = y ~ s(x, bs = "cs", k = 7),
+    se = FALSE, linewidth = 1
+  ) +
+  scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9) +
+  labs(
+    x = "ρ",
+    y = "Relative MSE (scaled)",
+    color = expression(omega^2)
+  ) +
+  theme_minimal()
+
+# let's try something else instead: Rho vs. Omega + Smoothing ----
+what_param_to_plot = "rho" # choose between beta, omega, rho
+what_type_to_plot = "sd_of_param" # other option: "sd_of_param"
+
+param_cols <- list(avg_of_param_se = c(beta = "avg_of_beta_se", omega = "avg_of_omega_se", 
+                                       rho = "avg_of_rho_se"), sd_of_param = c(beta = "sd_of_beta_estimates", 
+                                                                               omega = "sd_of_omega_estimates", rho = "sd_of_rho_estimates"))
+mse_col <- paste0(what_param_to_plot, "_mse")
+title_param <- switch(what_param_to_plot, beta = "Beta", omega = "Omega", rho = "Rho")
+
+plotted_omega = c(1) # reference omega used for plots
+plotted_beta = c(seq(from = 2.4, to = 3.6, by = 0.2)) # vary beta in color
+plotted_T = 2
+
+for (i in 1:length(plotted_beta)){
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+  # Choose a ref
+  ref_df = ref_df %>% filter(Tfull == plotted_T, beta_free == plotted_beta[i], omega_var == plotted_omega, N == 500)
+  
+  df_filtered <- df %>%
+    filter(Tfull == plotted_T, N == 500, beta_free == plotted_beta[i])
+  
+  if(what_type_to_plot == "sd_of_param"){
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(rho, beta_mse, omega_mse, rho_mse, sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "rho") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    
+  } else {
+    
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(rho, beta_mse, omega_mse, rho_mse, mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "rho") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+  }
+  
+  if(i == 1){
+    df_info = df_final
+  } else {
+    df_info = rbind(df_info, df_final)
+  }
+  
+  if(i == length(plotted_beta)) {
+    p <- ggplot(
+      df_info,
+      aes(x = rho,
+          y = .data[[mse_col]],
+          group = factor(omega_var),
+          color = factor(omega_var))
+    ) +
+      geom_point(alpha = 0.4, size = 1.2,
+                 position = position_jitter(width = 0.01, height = 0)) +
+      
+      # smooth all but the reference variance (omega_var == 1)
+      geom_smooth(
+        data = subset(df_info, omega_var != 1),
+        method = "gam",
+        formula = y ~ s(x, bs = "tp", k = 7),
+        se = FALSE,
+        linewidth = 1
+      ) +
+      
+      # manually add the flat reference line at y = 1, because gam broke for ref
+      geom_segment(
+        data = data.frame(omega_var = 1),
+        aes(x = -0.9, xend = 0.9, y = 1, yend = 1, color = factor(omega_var)),
+        inherit.aes = FALSE,
+        linewidth = 1,
+        linetype = "dashed"
+      ) +
+      
+      scale_color_viridis_d(option = "D", begin = 0.4, end = 0.9,
+                            name = expression(omega^2)) +
+      theme_minimal() + theme(
+        legend.position = "right",
+        plot.title = element_text(hjust = 0.5)
+      ) + 
+      labs(title = paste("Relative NMSE Ranking for AR(1) Coefficient ρ vs. ω² Variance"),
+           x = "Rho",
+           y = bquote("Relative NMSE ("*NMSE[omega^2] / NMSE[omega^2==1]*")")) +
+      scale_x_continuous(breaks = unique(df$rho)) +
+      coord_cartesian(ylim = c(0.95, 1.05)) +
+      guides(
+        color = guide_legend(
+          title = paste0("Fixed\nParams:\nT = ", unique(df_info$Tfull),
+                         "\nN = ", unique(df_info$N),
+                         "\n\nReference:",
+                         "\nVar ω² = ", unique(ref_df$omega_var),
+                         "\n\nBeta used\nin Smoother:",
+                         "\nβ = ", min(unique(df_info$beta_free)), " - ", max(unique(df_info$beta_free)),
+                         "\n(by 0.2)",
+                         "\n\n# of Reps:\n~3000\n\nVar ω²:"
+          )
+        ),
+        fill = guide_legend(
+          title = paste0("Fixed\nParams:\nT = ", unique(df_info$Tfull),
+                         "\nN = ", unique(df_info$N),
+                         "\n\nBeta used\nin Smoother:",
+                         "\nβ = ", min(unique(df_info$beta_free)), " - ", max(unique(df_info$beta_free)),
+                         "\n(by 0.2)",
+                         "\n\n# of Reps:\n~3000\n\nVar ω²:"
+          )
+        )
+      )
+    plot(p) #"\nβ = ", 
+  }
+}  
+
+
+# Omega vs. Rho + Smoothing — T=2 dotted, T=3 solid, no points ----
+what_param_to_plot = "rho" 
+what_type_to_plot  = "sd_of_param" 
+
+param_cols <- list(
+  avg_of_param_se = c(beta = "avg_of_beta_se", omega = "avg_of_omega_se", rho = "avg_of_rho_se"),
+  sd_of_param     = c(beta = "sd_of_beta_estimates", omega = "sd_of_omega_estimates", rho = "sd_of_rho_estimates")
+)
+mse_col   <- paste0(what_param_to_plot, "_mse")
+title_param <- switch(what_param_to_plot, beta = "Beta", omega = "Omega", rho = "Rho")
+
+plotted_omega <- 1
+plotted_beta  <- seq(2.4, 3.6, by = 0.2)
+plotted_Ts    <- c(3, 4)
+
+df_all <- read.csv(file.path(getwd(), "GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+
+df_info <- dplyr::bind_rows(lapply(plotted_Ts, function(Ti) {
+  dplyr::bind_rows(lapply(plotted_beta, function(bi) {
+    
+    ref_df <- df_all %>%
+      dplyr::filter(Tfull == Ti, beta_free == bi, omega_var == plotted_omega, N == 500)
+    
+    df_filtered <- df_all %>%
+      dplyr::filter(Tfull == Ti, N == 500, beta_free == bi)
+    
+    if (what_type_to_plot == "sd_of_param") {
+      ref_df_filtered <- ref_df %>%
+        dplyr::select(rho, beta_mse, omega_mse, rho_mse,
+                      sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+        dplyr::rename(
+          ref_beta_mse  = beta_mse,
+          ref_omega_mse = omega_mse,
+          ref_rho_mse   = rho_mse,
+          ref_beta_se   = sd_of_beta_estimates,
+          ref_omega_se  = sd_of_omega_estimates,
+          ref_rho_se    = sd_of_rho_estimates
+        )
+      
+      df_filtered %>%
+        dplyr::left_join(ref_df_filtered, by = "rho") %>%
+        dplyr::mutate(
+          beta_mse  = (beta_mse  / sd_of_beta_estimates^2) / (ref_beta_mse  / ref_beta_se^2),
+          omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+          rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+        )
+    } else {
+      ref_df_filtered <- ref_df %>%
+        dplyr::select(rho, beta_mse, omega_mse, rho_mse,
+                      mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+        dplyr::rename(
+          ref_beta_mse  = beta_mse,
+          ref_omega_mse = omega_mse,
+          ref_rho_mse   = rho_mse,
+          ref_beta_var  = mb_var_of_beta_for_NMSE,
+          ref_omega_var = mb_var_of_omega_for_NMSE,
+          ref_rho_var   = mb_var_of_rho_for_NMSE
+        )
+      
+      df_filtered %>%
+        dplyr::left_join(ref_df_filtered, by = "rho") %>%
+        dplyr::mutate(
+          beta_mse  = (beta_mse  / mb_var_of_beta_for_NMSE)  / (ref_beta_mse  / ref_beta_var),
+          omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+          rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+        )
+    }
+  }))
+}))
+
+brks <- round(seq(-0.9, 0.9, by = 0.3), 1)
+
+p <- ggplot(
+  df_info,
+  aes(
+    x = rho,
+    y = .data[[mse_col]],
+    color = factor(omega_var),
+    linetype = factor(Tfull),
+    group = interaction(omega_var, Tfull)
+  )
+) +
+  geom_smooth(
+    data = subset(df_info, omega_var != 1),
+    method = "gam",
+    formula = y ~ s(x, bs = "tp", k = 7),
+    se = FALSE,
+    linewidth = 1
+  ) +
+  scale_linetype_manual(values = c("2" = "dotted", "3" = "dotted", "4" = "solid"), name = "T") +
+  scale_color_viridis_d(option = "D", begin = 0.2, end = 0.9,
+                        name = expression(omega^2)) +
+  theme_minimal() +
+  geom_segment(
+    data = data.frame(omega_var = 1),
+    aes(x = -0.9, xend = 0.9, y = 1, yend = 1, color = factor(omega_var)),
+    inherit.aes = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = paste("Relative NMSE Ranking for AR(1) Coefficient ρ vs. ω² Variance"),
+    x = "Rho",
+    y = bquote("Relative NMSE ("*NMSE[omega^2] / NMSE[omega^2==1]*")")
+  ) +
+  scale_x_continuous(breaks = unique(df_all$rho)) +
+  coord_cartesian(ylim = c(0.95, 1.05)) +
+  guides(
+    color = guide_legend(
+      order = 2,
+      title = paste0(
+        "Fixed\nParams:",
+        "\nN = ", unique(df_info$N),
+        "\n\nReference:",
+        "\nVar ω² = ", unique(ref_df$omega_var),
+        "\n\nBeta used\nin Smoother:",
+        "\nβ = ", min(unique(df_info$beta_free)), " - ", max(unique(df_info$beta_free)),
+        "\n(by 0.2)",
+        "\n\n# of Reps:\n~3000\n\nVar ω²:"
+      )
+    ),
+    linetype = guide_legend(order = 3, title = "Time T")
+  )
+
+
+plot(p)
+
+
+
+
+
+
+
+
+# let's try something else instead: Omega vs. Rho + Smoothing ----
+what_param_to_plot = "rho" # choose between beta, omega, rho
+what_type_to_plot = "sd_of_param" # other option: "sd_of_param"
+
+param_cols <- list(avg_of_param_se = c(beta = "avg_of_beta_se", omega = "avg_of_omega_se", 
+                                       rho = "avg_of_rho_se"), 
+                   sd_of_param = c(beta = "sd_of_beta_estimates", 
+                                   omega = "sd_of_omega_estimates", 
+                                   rho = "sd_of_rho_estimates"))
+mse_col <- paste0(what_param_to_plot, "_mse")
+title_param <- switch(what_param_to_plot, beta = "Beta", omega = "Omega", rho = "Rho")
+
+plotted_rho = c(0) 
+plotted_beta = c(seq(from = 3, to = 4, by = 0.2)) 
+plotted_T = 2
+
+for (i in 1:length(plotted_beta)){
+  ref_df = df = read.csv(paste0(getwd(), "/GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+  
+  ref_df = ref_df %>% 
+    filter(Tfull == plotted_T, beta_free == plotted_beta[i], rho == plotted_rho, N == 500)
+  
+  df_filtered <- df %>%
+    filter(Tfull == plotted_T, N == 500, beta_free == plotted_beta[i])
+  
+  if(what_type_to_plot == "sd_of_param"){
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, 
+                    sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_se = sd_of_beta_estimates,
+        ref_omega_se = sd_of_omega_estimates,
+        ref_rho_se = sd_of_rho_estimates
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / sd_of_beta_estimates^2) / (ref_beta_mse / ref_beta_se^2),
+        omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+        rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+      )
+    
+  } else {
+    ref_df_filtered <- ref_df %>%
+      dplyr::select(omega_var, beta_mse, omega_mse, rho_mse, 
+                    mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+      rename(
+        ref_beta_mse = beta_mse,
+        ref_omega_mse = omega_mse,
+        ref_rho_mse = rho_mse,
+        ref_beta_var = mb_var_of_beta_for_NMSE,
+        ref_omega_var = mb_var_of_omega_for_NMSE,
+        ref_rho_var = mb_var_of_rho_for_NMSE
+      )
+    
+    df_final <- df_filtered %>%
+      left_join(ref_df_filtered, by = "omega_var") %>%
+      mutate(
+        beta_mse = (beta_mse / mb_var_of_beta_for_NMSE) / (ref_beta_mse / ref_beta_var),
+        omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+        rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+      )
+  }
+  
+  if(i == 1){
+    df_info = df_final
+  } else {
+    df_info = rbind(df_info, df_final)
+  }
+  
+  if (i == length(plotted_beta)) {
+    brks <- round(seq(-0.9, 0.9, by = 0.3), 1)
+    
+    p <- ggplot(
+      df_info,
+      aes(
+        x = factor(omega_var),
+        y = .data[[mse_col]],
+        group = factor(rho),
+        color = rho
+      )
+    ) +
+      geom_point(
+        alpha = 0.4, size = 1.2,
+        position = position_jitter(width = 0.01, height = 0)
+      ) +
+      geom_smooth(
+        data = subset(df_info, rho != 0),
+        method = "gam",
+        formula = y ~ s(x, bs = "tp", k = 4),
+        se = FALSE, linewidth = 1
+      ) +
+      geom_segment(
+        data = data.frame(rho = 0),
+        aes(
+          x = 0.5,
+          xend = length(unique(df_info$omega_var)) + 0.5,
+          y = 1,
+          yend = 1,
+          color = rho
+        ),
+        inherit.aes = FALSE,
+        linewidth = 1,
+        linetype = "dashed"
+      ) +
+      theme_minimal() +
+      theme(
+        legend.position = "right",
+        plot.title = element_text(hjust = 0.5)
+      ) +
+      labs(
+        title = "Relative NMSE Ranking for ω² Variance vs. AR(1) Coefficient ρ",
+        x = "Omega Variance",
+        y = bquote("Relative NMSE ( "*NMSE[rho] / NMSE[rho==0]*")")
+      ) +
+      coord_cartesian(ylim = c(0.95, 1.10)) +
+      scale_color_gradientn(
+        colors = c(
+          "#08306B", "#4EA3D9",  # deep → bright blue (negatives)
+          "#2FBF71",             # green at 0
+          "#F9D057", "#D7191C"   # yellow → red (positives)
+        ),
+        values = scales::rescale(c(-0.9, -0.3, 0, 0.3, 0.9)),
+        limits = c(-0.9, 0.9),
+        breaks = brks,
+        labels = scales::label_number(accuracy = 0.1, trim = TRUE),
+        name = expression(rho)
+      ) +
+      guides(
+        color = guide_colorbar(
+          barheight = grid::unit(140, "pt"),
+          barwidth  = grid::unit(10,  "pt"),
+          title = paste0(
+            "Fixed\nParams:\nT = ", unique(df_info$Tfull),
+            "\nN = ", unique(df_info$N),
+            "\n\nReference:\nAR(1) ρ = ", unique(ref_df$rho),
+            "\n\nBeta used\nin Smoother:\nβ = ",
+            min(unique(df_info$beta_free)), " - ", max(unique(df_info$beta_free)),
+            "\n(by 0.2)",
+            "\n\n# of Reps:\n~3000\n\n",
+            "AR(1) ρ:\n"
+          )
+        )
+      )
+    plot(p)
+  }
+}
+
+
+
+
+
+
+# Omega vs. Rho + Smoothing (T = 2 dotted, T = 3 solid) ----
+what_param_to_plot <- "omega"
+what_type_to_plot  <- "sd_of_param"
+
+param_cols <- list(
+  avg_of_param_se = c(beta = "avg_of_beta_se", omega = "avg_of_omega_se", rho = "avg_of_rho_se"),
+  sd_of_param     = c(beta = "sd_of_beta_estimates", omega = "sd_of_omega_estimates", rho = "sd_of_rho_estimates")
+)
+mse_col   <- paste0(what_param_to_plot, "_mse")
+title_param <- switch(what_param_to_plot, beta = "Beta", omega = "Omega", rho = "Rho")
+
+plotted_rho   <- 0
+plotted_beta  <- seq(0, 4, by = 0.2)
+plotted_Ts    <- c(2, 3)
+
+df_all <- read.csv(file.path(getwd(), "GitHub/MasterThesis/DGP1_3000reps_Results_allB_v6.csv"))
+
+df_info <- dplyr::bind_rows(lapply(plotted_Ts, function(Ti) {
+  dplyr::bind_rows(lapply(plotted_beta, function(bi) {
+    
+    ref_df <- df_all %>%
+      dplyr::filter(Tfull == Ti, beta_free == bi, rho == plotted_rho, N == 500)
+    
+    df_filtered <- df_all %>%
+      dplyr::filter(Tfull == Ti, N == 500, beta_free == bi)
+    
+    if (what_type_to_plot == "sd_of_param") {
+      ref_df_filtered <- ref_df %>%
+        dplyr::select(omega_var, beta_mse, omega_mse, rho_mse,
+                      sd_of_beta_estimates, sd_of_omega_estimates, sd_of_rho_estimates) %>%
+        dplyr::rename(
+          ref_beta_mse = beta_mse,
+          ref_omega_mse = omega_mse,
+          ref_rho_mse = rho_mse,
+          ref_beta_se = sd_of_beta_estimates,
+          ref_omega_se = sd_of_omega_estimates,
+          ref_rho_se = sd_of_rho_estimates
+        )
+      
+      df_filtered %>%
+        dplyr::left_join(ref_df_filtered, by = "omega_var") %>%
+        dplyr::mutate(
+          beta_mse  = (beta_mse  / sd_of_beta_estimates^2) / (ref_beta_mse  / ref_beta_se^2),
+          omega_mse = (omega_mse / sd_of_omega_estimates^2) / (ref_omega_mse / ref_omega_se^2),
+          rho_mse   = (rho_mse   / sd_of_rho_estimates^2)   / (ref_rho_mse   / ref_rho_se^2)
+        )
+    } else {
+      ref_df_filtered <- ref_df %>%
+        dplyr::select(omega_var, beta_mse, omega_mse, rho_mse,
+                      mb_var_of_beta_for_NMSE, mb_var_of_omega_for_NMSE, mb_var_of_rho_for_NMSE) %>%
+        dplyr::rename(
+          ref_beta_mse  = beta_mse,
+          ref_omega_mse = omega_mse,
+          ref_rho_mse   = rho_mse,
+          ref_beta_var  = mb_var_of_beta_for_NMSE,
+          ref_omega_var = mb_var_of_omega_for_NMSE,
+          ref_rho_var   = mb_var_of_rho_for_NMSE
+        )
+      
+      df_filtered %>%
+        dplyr::left_join(ref_df_filtered, by = "omega_var") %>%
+        dplyr::mutate(
+          beta_mse  = (beta_mse  / mb_var_of_beta_for_NMSE)  / (ref_beta_mse  / ref_beta_var),
+          omega_mse = (omega_mse / mb_var_of_omega_for_NMSE) / (ref_omega_mse / ref_omega_var),
+          rho_mse   = (rho_mse   / mb_var_of_rho_for_NMSE)   / (ref_rho_mse   / ref_rho_var)
+        )
+    }
+  }))
+}))
+
+brks <- round(seq(-0.9, 0.9, by = 0.3), 1)
+
+p <- ggplot(
+  df_info,
+  aes(
+    x = factor(omega_var),
+    y = .data[[mse_col]],
+    color = rho,
+    linetype = factor(Tfull),                 # map linetype to T
+    group = interaction(rho, Tfull)           # separate curve for each (rho, T)
+  )
+) +
+  geom_smooth(
+    data = subset(df_info, rho != 0),
+    method = "gam",
+    formula = y ~ s(x, bs = "tp", k = 4),
+    se = FALSE, linewidth = 1
+  ) +
+  geom_segment(
+    data = data.frame(rho = 0),
+    aes(
+      x = 0.5,
+      xend = length(unique(df_info$omega_var)) + 0.5,
+      y = 1, yend = 1,
+      color = rho
+    ),
+    inherit.aes = FALSE,
+    linewidth = 1,
+    linetype = "dashed"
+  ) +
+  scale_linetype_manual(values = c("2" = "dotted",
+                                   "3" = "solid"), name = "T") +
+  scale_color_gradientn(
+    colors = c("#08306B", "#4EA3D9", "#2FBF71", "#F9D057", "#D7191C"),
+    values = scales::rescale(c(-0.9, -0.3, 0, 0.3, 0.9)),
+    limits = c(-0.9, 0.9),
+    breaks = brks,
+    labels = scales::label_number(accuracy = 0.1, trim = TRUE),
+    name = expression(rho)
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  labs(
+    title = "Relative NMSE Ranking for ω² Variance vs. AR(1) Coefficient ρ",
+    x = "Omega Variance",
+    y = bquote("Relative NMSE ("*NMSE[rho] / NMSE[rho==1]*")")
+  ) +
+  coord_cartesian(ylim = c(0.975, 1.10)) +
+  guides(
+    linetype = guide_legend(
+      order = 3,
+      title = "Time T"
+    ),
+    color = guide_colorbar(
+      order = 2,  # always after linetype
+      barheight = grid::unit(140, "pt"),
+      barwidth  = grid::unit(10,  "pt"),
+      title = paste0(
+        "Fixed\nParams:",
+        "\nN = ", unique(df_info$N),
+        "\n\nReference:\nAR(1) ρ = ", unique(ref_df$rho),
+        "\n\nBeta used\nin Smoother:\nβ = ",
+        min(unique(df_info$beta_free)), " - ", max(unique(df_info$beta_free)),
+        "\n(by 0.2)",
+        "\n\n# of Reps:\n~3000\n\n",
+        "AR(1) ρ:\n"
+      )
+    )
+  )
+
+plot(p)
 
